@@ -1,16 +1,20 @@
-//! Custom plugin window (nih_plug_egui).
+//! Custom plugin window: the "Instrument" faceplate (design direction B).
 //!
-//! Layout (fixed size [`WIDTH`] x [`HEIGHT`] logical pixels):
-//! - Sensitivity: a wide slider whose value is drawn in a roomy box.
-//! - Percussion protection: three buttons (Off / Standard / Extended), each
-//!   with its latency underneath.
-//! - Monitor (Declick / Clicks only) and Bypass.
-//! - Clicks-per-minute meter: rate over the last 10 s of audio (log bar,
-//!   coloured clean / moderate / heavy) and a 60 s history line.
-//! - Status: clicks repaired since the engine started, latency, sample rate.
+//! A warm grey panel in the manner of 1970s laboratory test gear, painted
+//! directly with egui at its design size [`WIDTH`] x [`HEIGHT`]:
+//! - Sensitivity: amber readout (percent, plus the internal threshold in
+//!   small print) above a knob with 21 detents (5 % steps). Drag vertically or
+//!   scroll to change it; double-click returns to 50 %.
+//! - Clicks per minute: amber readout and zone word, a 30-segment LED ladder
+//!   on a log scale (10 / 100 / 1000), and a paper strip chart of the last
+//!   60 s (same scale).
+//! - Latching keys with lamps: Percussion protection (Off / Standard /
+//!   Extended, each with its delay), Listen (Repaired / Clicks), Bypass.
+//! - Status band: latency, sample rate, clicks repaired.
 //!
 //! Live numbers come from [`UiStats`], written by the audio thread with
-//! relaxed atomic stores (no locks, no allocation in `process`).
+//! relaxed atomic stores (no locks, no allocation in `process`). Fonts: IBM
+//! Plex Sans Condensed and IBM Plex Mono (SIL OFL 1.1, `assets/fonts`).
 
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
@@ -18,18 +22,61 @@ use std::sync::Arc;
 
 use nih_plug::prelude::*;
 use nih_plug_egui::egui::{
-    self, Align, Align2, Color32, FontId, Layout, Pos2, RichText, Sense, Stroke, Vec2,
+    self, Align2, Color32, CornerRadius, CursorIcon, FontData, FontDefinitions, FontFamily, FontId,
+    Mesh, Pos2, Rect, Sense, Shape, Stroke, StrokeKind, Vec2,
 };
-use nih_plug_egui::{create_egui_editor, widgets, EguiState};
+use nih_plug_egui::{create_egui_editor, EguiState};
 
-use crate::{Monitor, PercussionProtection, PressingParams};
+use crate::{sensitivity_to_threshold, Monitor, PercussionProtection, PressingParams};
 
-/// Window size in logical pixels.
+/// Where a double-click puts the Sensitivity knob.
+pub const KNOB_RESET: f32 = 50.0;
+
+/// Window size in logical pixels (the faceplate's design size).
 pub const WIDTH: u32 = 520;
 pub const HEIGHT: u32 = 470;
 
-const ACCENT: Color32 = Color32::from_rgb(0xE0, 0x9F, 0x3E); // warm amber, vinyl label
-const DIM: Color32 = Color32::from_gray(150);
+// ---- Palette (direction B) ----
+
+const PANEL_TOP: Color32 = Color32::from_rgb(0xD4, 0xCF, 0xC3);
+const PANEL_BOT: Color32 = Color32::from_rgb(0xC6, 0xC0, 0xB2);
+const BAND: Color32 = Color32::from_rgb(0x3C, 0x3A, 0x36);
+const BAND_TEXT: Color32 = Color32::from_rgb(0xEB, 0xE6, 0xDA);
+const BAND_DIM: Color32 = Color32::from_rgb(0xA9, 0xA3, 0x95);
+const LEGEND: Color32 = Color32::from_rgb(0x3C, 0x3A, 0x36);
+const GLASS_TOP: Color32 = Color32::from_rgb(0x1B, 0x1A, 0x17);
+const GLASS_BOT: Color32 = Color32::from_rgb(0x26, 0x24, 0x1F);
+const AMBER: Color32 = Color32::from_rgb(0xF2, 0xA9, 0x3B);
+const AMBER_DIM: Color32 = Color32::from_rgb(0xC9, 0x8A, 0x2E);
+const AMBER_FAINT: Color32 = Color32::from_rgb(0x8C, 0x75, 0x47);
+const KEY_TOP: Color32 = Color32::from_rgb(0xEC, 0xE8, 0xDE);
+const KEY_BOT: Color32 = Color32::from_rgb(0xCF, 0xC9, 0xBB);
+const KEY_ON_TOP: Color32 = Color32::from_rgb(0xD9, 0xD4, 0xC7);
+const KEY_ON_BOT: Color32 = Color32::from_rgb(0xBD, 0xB6, 0xA6);
+const KEY_EDGE: Color32 = Color32::from_rgb(0x8C, 0x85, 0x77);
+const KEY_TEXT: Color32 = Color32::from_rgb(0x2C, 0x2A, 0x26);
+const KEY_SUB: Color32 = Color32::from_rgb(0x6A, 0x64, 0x55);
+const LAMP_OFF: Color32 = Color32::from_rgb(0x6D, 0x65, 0x53);
+const RED: Color32 = Color32::from_rgb(0xE2, 0x55, 0x3F);
+const GREEN: Color32 = Color32::from_rgb(0x7E, 0xC2, 0x7A);
+const LED_OFF: Color32 = Color32::from_rgb(0x4A, 0x46, 0x3D);
+const PAPER: Color32 = Color32::from_rgb(0xF4, 0xEC, 0xD4);
+const PAPER_EDGE: Color32 = Color32::from_rgb(0xA8, 0x9F, 0x8A);
+const GRID: Color32 = Color32::from_rgb(0xC9, 0xB9, 0x8F);
+const INK: Color32 = Color32::from_rgb(0x2F, 0x3B, 0x6B);
+const PAPER_LABEL: Color32 = Color32::from_rgb(0x8A, 0x7A, 0x52);
+const FOOT: Color32 = Color32::from_rgb(0xBD, 0xB6, 0xA7);
+const KNOB_EDGE: Color32 = Color32::from_rgb(0x34, 0x32, 0x2F);
+const KNOB_MID: Color32 = Color32::from_rgb(0x4B, 0x49, 0x45);
+const KNOB_HI: Color32 = Color32::from_rgb(0x7D, 0x7A, 0x73);
+const KNOB_CAP: Color32 = Color32::from_rgb(0x55, 0x53, 0x4E);
+const KNOB_LINE: Color32 = Color32::from_rgb(0xF0, 0xEB, 0xDF);
+
+const COND: &str = "plex-cond";
+const MONO: &str = "plex-mono";
+const MONO_M: &str = "plex-mono-medium";
+
+// ---- Shared numbers ----
 
 /// Numbers the audio thread publishes for the window.
 #[derive(Default)]
@@ -146,82 +193,24 @@ pub fn meter_fraction(rate: f64) -> f32 {
 /// Zone colour and word for a rate.
 pub fn meter_zone(rate: f64) -> (Color32, &'static str) {
     if rate < 100.0 {
-        (Color32::from_rgb(0x5F, 0xB3, 0x6B), "clean")
+        (GREEN, "clean")
     } else if rate < 600.0 {
-        (ACCENT, "moderate")
+        (AMBER, "moderate")
     } else {
-        (Color32::from_rgb(0xD9, 0x5B, 0x4A), "heavy")
+        (RED, "heavy")
     }
 }
 
-fn draw_meter(ui: &mut egui::Ui, meter: &Meter, sr: f64) {
-    let rate = meter.rate(sr);
-    ui.horizontal(|ui| {
-        let (big, word, col) = match rate {
-            Some(r) => {
-                let (c, w) = meter_zone(r);
-                (format!("{r:.0}"), w, c)
-            }
-            None => ("–".to_string(), "", DIM),
-        };
-        ui.label(RichText::new(big).size(26.0).strong().color(col));
-        ui.label(RichText::new("clicks / min").color(DIM));
-        ui.label(RichText::new(word).color(col));
-    });
-    // Bar on a log scale with ticks at 10, 100, 1000.
-    let width = 460.0;
-    let (bar, _) = ui.allocate_exact_size(Vec2::new(width, 16.0), Sense::hover());
-    let painter = ui.painter_at(bar.expand(1.0));
-    painter.rect_filled(bar, 3.0, Color32::from_gray(45));
-    if let Some(r) = rate {
-        let mut fill = bar;
-        fill.set_width(bar.width() * meter_fraction(r));
-        painter.rect_filled(fill, 3.0, meter_zone(r).0);
-    }
-    let (ticks, _) = ui.allocate_exact_size(Vec2::new(width, 12.0), Sense::hover());
-    let tp = ui.painter_at(ticks);
-    for t in [10.0, 100.0, 1000.0] {
-        let x = bar.left() + bar.width() * meter_fraction(t);
-        painter.line_segment(
-            [Pos2::new(x, bar.top()), Pos2::new(x, bar.bottom())],
-            Stroke::new(1.0_f32, Color32::from_gray(90)),
-        );
-        tp.text(
-            Pos2::new(x, ticks.top()),
-            Align2::CENTER_TOP,
-            format!("{t:.0}"),
-            FontId::proportional(10.0),
-            DIM,
-        );
-    }
-    // 60 s history line (same log scale).
-    let (hist, _) = ui.allocate_exact_size(Vec2::new(width, 46.0), Sense::hover());
-    let hp = ui.painter_at(hist);
-    hp.rect_stroke(
-        hist,
-        3.0,
-        Stroke::new(1.0_f32, Color32::from_gray(60)),
-        egui::StrokeKind::Inside,
-    );
-    let pts: Vec<Pos2> = meter
-        .history()
-        .enumerate()
-        .map(|(i, r)| {
-            let x = hist.left() + hist.width() * (i as f32 / (METER_HISTORY - 1) as f32);
-            let y = hist.bottom() - 3.0 - (hist.height() - 6.0) * meter_fraction(r);
-            Pos2::new(x, y)
-        })
-        .collect();
-    if pts.len() >= 2 {
-        hp.add(egui::Shape::line(pts, Stroke::new(1.5_f32, ACCENT)));
-    }
-    hp.text(
-        hist.left_top() + Vec2::new(4.0, 2.0),
-        Align2::LEFT_TOP,
-        "last 60 s",
-        FontId::proportional(10.0),
-        DIM,
-    );
+// ---- Editor ----
+
+/// GUI-thread state: the meter and the knob gesture.
+#[derive(Default)]
+struct EditorState {
+    meter: Meter,
+    /// Sensitivity when the current drag started, and pixels dragged since.
+    drag_start: f32,
+    drag_px: f32,
+    scroll_px: f32,
 }
 
 /// Default persisted editor state.
@@ -229,142 +218,541 @@ pub fn default_state() -> Arc<EguiState> {
     EguiState::from_size(WIDTH, HEIGHT)
 }
 
+fn fonts() -> FontDefinitions {
+    let mut f = FontDefinitions::default();
+    for (name, bytes) in [
+        (
+            COND,
+            &include_bytes!("../assets/fonts/IBMPlexSansCondensed-SemiBold.ttf")[..],
+        ),
+        (
+            MONO,
+            &include_bytes!("../assets/fonts/IBMPlexMono-Regular.ttf")[..],
+        ),
+        (
+            MONO_M,
+            &include_bytes!("../assets/fonts/IBMPlexMono-Medium.ttf")[..],
+        ),
+    ] {
+        f.font_data
+            .insert(name.to_owned(), Arc::new(FontData::from_static(bytes)));
+        f.families
+            .insert(FontFamily::Name(name.into()), vec![name.to_owned()]);
+    }
+    f
+}
+
 /// Build the editor (called by the host when it opens the window).
-pub fn create(params: Arc<PressingParams>, stats: Arc<UiStats>) -> Option<Box<dyn Editor>> {
+pub fn create(
+    params: Arc<PressingParams>,
+    stats: Arc<UiStats>,
+    model_threshold: f32,
+) -> Option<Box<dyn Editor>> {
     let state = params.editor_state.clone();
     create_egui_editor(
         state,
-        Meter::default(),
-        |ctx, _| {
-            let mut style = (*ctx.style()).clone();
-            style.spacing.item_spacing = Vec2::new(8.0, 8.0);
-            style.spacing.button_padding = Vec2::new(10.0, 6.0);
-            ctx.set_style(style);
-        },
-        move |ctx, setter, meter| {
-            egui::CentralPanel::default().show(ctx, |ui| {
-                draw(ui, setter, &params, &stats, meter);
-            });
-            // Keep the status line live (cheap: one small repaint per 250 ms).
+        EditorState::default(),
+        |ctx, _| ctx.set_fonts(fonts()),
+        move |ctx, setter, st| {
+            egui::CentralPanel::default()
+                .frame(egui::Frame::NONE)
+                .show(ctx, |ui| {
+                    Faceplate::new(ui).draw(ui, setter, &params, &stats, st, model_threshold);
+                });
+            // Keep readouts live (cheap: a small repaint every 250 ms).
             ctx.request_repaint_after(std::time::Duration::from_millis(250));
         },
     )
 }
 
-fn section(ui: &mut egui::Ui, title: &str) {
-    ui.add_space(4.0);
-    ui.label(RichText::new(title).strong().size(14.0));
+fn font(family: &str, size: f32) -> FontId {
+    FontId::new(size, FontFamily::Name(family.into()))
 }
 
-fn draw(
-    ui: &mut egui::Ui,
-    setter: &ParamSetter,
-    params: &PressingParams,
-    stats: &UiStats,
-    meter: &mut Meter,
-) {
-    ui.horizontal(|ui| {
-        ui.label(
-            RichText::new("2ndPressing")
-                .size(22.0)
-                .strong()
-                .color(ACCENT),
+/// Vertical gradient rectangle.
+fn vgrad(p: &egui::Painter, r: Rect, top: Color32, bot: Color32) {
+    let mut m = Mesh::default();
+    m.colored_vertex(r.left_top(), top);
+    m.colored_vertex(r.right_top(), top);
+    m.colored_vertex(r.right_bottom(), bot);
+    m.colored_vertex(r.left_bottom(), bot);
+    m.add_triangle(0, 1, 2);
+    m.add_triangle(0, 2, 3);
+    p.add(Shape::mesh(m));
+}
+
+fn lerp(a: Color32, b: Color32, t: f32) -> Color32 {
+    let l = |x: u8, y: u8| (f32::from(x) + (f32::from(y) - f32::from(x)) * t).round() as u8;
+    Color32::from_rgb(l(a.r(), b.r()), l(a.g(), b.g()), l(a.b(), b.b()))
+}
+
+/// Maps the 520 x 470 design coordinates onto the window.
+struct Faceplate {
+    o: Pos2,
+}
+
+impl Faceplate {
+    fn new(ui: &egui::Ui) -> Self {
+        Faceplate {
+            o: ui.max_rect().min,
+        }
+    }
+    fn p(&self, x: f32, y: f32) -> Pos2 {
+        self.o + Vec2::new(x, y)
+    }
+    fn r(&self, x: f32, y: f32, w: f32, h: f32) -> Rect {
+        Rect::from_min_size(self.p(x, y), Vec2::new(w, h))
+    }
+
+    fn draw(
+        &self,
+        ui: &mut egui::Ui,
+        setter: &ParamSetter,
+        params: &PressingParams,
+        stats: &UiStats,
+        st: &mut EditorState,
+        model_threshold: f32,
+    ) {
+        let painter = ui.painter().clone();
+        let pt = &painter;
+
+        // Panel and bands.
+        vgrad(
+            pt,
+            self.r(0.0, 0.0, WIDTH as f32, HEIGHT as f32),
+            PANEL_TOP,
+            PANEL_BOT,
         );
-        ui.label(RichText::new("Declicker").size(22.0));
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            let bypassed = params.bypass.value();
-            let label = if bypassed { "Bypassed" } else { "Bypass" };
-            let text = RichText::new(label).color(if bypassed { ACCENT } else { DIM });
-            if ui.selectable_label(bypassed, text).clicked() {
-                setter.begin_set_parameter(&params.bypass);
-                setter.set_parameter(&params.bypass, !bypassed);
-                setter.end_set_parameter(&params.bypass);
+        pt.rect_filled(self.r(0.0, 0.0, WIDTH as f32, 54.0), 0.0, BAND);
+        pt.text(
+            self.p(26.0, 38.0),
+            Align2::LEFT_BOTTOM,
+            "2ndPressing",
+            font(COND, 18.0),
+            BAND_TEXT,
+        );
+        pt.text(
+            self.p(130.0, 38.0),
+            Align2::LEFT_BOTTOM,
+            "DECLICKER",
+            font(COND, 18.0),
+            BAND_DIM,
+        );
+        pt.text(
+            self.p(494.0, 36.0),
+            Align2::RIGHT_BOTTOM,
+            "CLICK REPAIR · STEREO",
+            font(MONO, 9.5),
+            BAND_DIM,
+        );
+
+        self.sensitivity(ui, pt, setter, params, st, model_threshold);
+        let sr = f64::from(f32::from_bits(stats.sample_rate.load(Ordering::Relaxed)));
+        st.meter.update(
+            stats.samples.load(Ordering::Relaxed),
+            stats.regions.load(Ordering::Relaxed),
+            sr,
+        );
+        self.meter(pt, &st.meter, sr);
+        self.keys(ui, pt, setter, params);
+        self.status(pt, stats, sr);
+    }
+
+    // ---- Sensitivity ----
+
+    fn sensitivity(
+        &self,
+        ui: &mut egui::Ui,
+        pt: &egui::Painter,
+        setter: &ParamSetter,
+        params: &PressingParams,
+        st: &mut EditorState,
+        model_threshold: f32,
+    ) {
+        let param = &params.sensitivity;
+        let value = param.value();
+        pt.text(
+            self.p(26.0, 72.0),
+            Align2::LEFT_TOP,
+            "SENSITIVITY",
+            font(COND, 10.0),
+            LEGEND,
+        );
+        let glass = self.r(26.0, 90.0, 200.0, 56.0);
+        vgrad(pt, glass, GLASS_TOP, GLASS_BOT);
+        pt.text(
+            self.p(200.0, 140.0),
+            Align2::RIGHT_BOTTOM,
+            format!("{value:.0}"),
+            font(MONO_M, 36.0),
+            AMBER,
+        );
+        pt.text(
+            self.p(205.0, 135.0),
+            Align2::LEFT_BOTTOM,
+            "%",
+            font(MONO, 13.0),
+            AMBER_DIM,
+        );
+        let thr = sensitivity_to_threshold(value, model_threshold);
+        pt.text(
+            self.p(34.0, 96.0),
+            Align2::LEFT_TOP,
+            format!("THRESHOLD {thr:.2}"),
+            font(MONO, 8.5),
+            AMBER_FAINT,
+        );
+
+        // Scale: 21 detents over 270 degrees, numbers every 25 %.
+        let c = self.p(126.0, 224.0);
+        let dir = |deg: f32| {
+            let a = (deg - 90.0).to_radians();
+            Vec2::new(a.cos(), a.sin())
+        };
+        for i in 0..=20 {
+            let deg = -135.0 + i as f32 * 13.5;
+            let major = i % 5 == 0;
+            let (r1, r2) = (46.0, if major { 55.0 } else { 51.0 });
+            pt.line_segment(
+                [c + dir(deg) * r1, c + dir(deg) * r2],
+                Stroke::new(if major { 1.3_f32 } else { 0.8 }, LEGEND),
+            );
+            if major {
+                pt.text(
+                    c + dir(deg) * 66.0,
+                    Align2::CENTER_CENTER,
+                    format!("{}", i * 5),
+                    font(MONO, 8.5),
+                    LEGEND,
+                );
             }
-        });
-    });
-    ui.separator();
+        }
+        // Knob: shadow, shaded body, cap, pointer.
+        pt.circle_filled(c + Vec2::new(2.0, 3.0), 40.0, Color32::from_black_alpha(70));
+        pt.circle_filled(c, 40.0, KNOB_EDGE);
+        for k in 0..10 {
+            let t = k as f32 / 9.0;
+            let col = lerp(KNOB_MID, KNOB_HI, t * 0.8);
+            pt.circle_filled(c + Vec2::new(-5.0, -7.0) * t, 38.0 * (1.0 - t * 0.55), col);
+        }
+        pt.circle_filled(c, 30.0, KNOB_CAP);
+        pt.circle_stroke(c, 30.0, Stroke::new(1.0_f32, KNOB_EDGE));
+        let deg = -135.0 + 270.0 * (value / 100.0);
+        pt.line_segment(
+            [c + dir(deg) * 13.0, c + dir(deg) * 27.0],
+            Stroke::new(2.6_f32, KNOB_LINE),
+        );
 
-    // Sensitivity: wide slider, value drawn inside it with plenty of room.
-    section(ui, "Sensitivity");
-    ui.horizontal(|ui| {
-        ui.label(RichText::new("gentle").color(DIM));
-        ui.add(widgets::ParamSlider::for_param(&params.sensitivity, setter).with_width(330.0));
-        ui.label(RichText::new("aggressive").color(DIM));
-    });
+        // Interaction: vertical drag (0.4 %/px), scroll, double-click reset.
+        let resp = ui
+            .interact(
+                Rect::from_center_size(c, Vec2::splat(84.0)),
+                ui.id().with("sens"),
+                Sense::click_and_drag(),
+            )
+            .on_hover_cursor(CursorIcon::ResizeVertical);
+        let snap = |v: f32| ((v / 5.0).round() * 5.0).clamp(0.0, 100.0);
+        if resp.drag_started() {
+            st.drag_start = value;
+            st.drag_px = 0.0;
+            setter.begin_set_parameter(param);
+        }
+        if resp.dragged() {
+            st.drag_px += resp.drag_delta().y;
+            let v = snap(st.drag_start - st.drag_px * 0.4);
+            if v != value {
+                setter.set_parameter(param, v);
+            }
+        }
+        if resp.drag_stopped() {
+            setter.end_set_parameter(param);
+        }
+        if resp.double_clicked() {
+            // Double-click returns to 50 % (the model's tuned threshold).
+            setter.begin_set_parameter(param);
+            setter.set_parameter(param, KNOB_RESET);
+            setter.end_set_parameter(param);
+        }
+        if resp.hovered() {
+            st.scroll_px += ui.input(|i| i.smooth_scroll_delta.y);
+            if st.scroll_px.abs() >= 24.0 {
+                let v = snap(value + 5.0 * st.scroll_px.signum());
+                st.scroll_px = 0.0;
+                if v != value {
+                    setter.begin_set_parameter(param);
+                    setter.set_parameter(param, v);
+                    setter.end_set_parameter(param);
+                }
+            }
+        }
+    }
 
-    // Percussion protection: one button per mode, latency underneath.
-    section(ui, "Percussion protection");
-    ui.horizontal(|ui| {
-        let current = params.protection.value();
-        for (mode, name, sub) in [
-            (PercussionProtection::Off, "Off", "32 ms"),
-            (PercussionProtection::Standard, "Standard", "≈ 1 s"),
-            (PercussionProtection::Extended, "Extended", "≈ 2 s"),
-        ] {
-            let selected = current == mode;
-            let text = RichText::new(format!("{name}\n{sub}")).size(13.0);
-            let button = egui::Button::new(text)
-                .selected(selected)
-                .min_size(Vec2::new(150.0, 44.0));
-            if ui.add(button).clicked() && !selected {
+    // ---- Clicks per minute ----
+
+    fn meter(&self, pt: &egui::Painter, meter: &Meter, sr: f64) {
+        pt.text(
+            self.p(262.0, 72.0),
+            Align2::LEFT_TOP,
+            "CLICKS PER MINUTE",
+            font(COND, 10.0),
+            LEGEND,
+        );
+        let glass = self.r(262.0, 90.0, 232.0, 56.0);
+        vgrad(pt, glass, GLASS_TOP, GLASS_BOT);
+        let rate = meter.rate(sr);
+        let (num, word) = match rate {
+            Some(r) => (format!("{r:.0}"), meter_zone(r).1.to_uppercase()),
+            None => ("--".to_string(), "WAITING FOR AUDIO".to_string()),
+        };
+        pt.text(
+            self.p(418.0, 140.0),
+            Align2::RIGHT_BOTTOM,
+            num,
+            font(MONO_M, 36.0),
+            AMBER,
+        );
+        pt.text(
+            self.p(423.0, 135.0),
+            Align2::LEFT_BOTTOM,
+            "/min",
+            font(MONO, 12.0),
+            AMBER_DIM,
+        );
+        pt.text(
+            self.p(270.0, 96.0),
+            Align2::LEFT_TOP,
+            word,
+            font(MONO, 8.5),
+            AMBER_FAINT,
+        );
+
+        // LED ladder: 30 segments on the log scale, zone colour per segment.
+        let n = 30;
+        let (x0, w, gap) = (262.0, 232.0, 2.0);
+        let sw = (w - gap * (n - 1) as f32) / n as f32;
+        let lit = rate.map_or(0, |r| (meter_fraction(r) * n as f32).round() as usize);
+        for i in 0..n {
+            let v = ((i as f64 + 0.5) / n as f64 * (1.0 + METER_MAX).ln()).exp() - 1.0;
+            let col = if i < lit { meter_zone(v).0 } else { LED_OFF };
+            pt.rect_filled(
+                self.r(x0 + i as f32 * (sw + gap), 156.0, sw, 14.0),
+                1.0,
+                col,
+            );
+        }
+        for v in [10.0, 100.0, 1000.0] {
+            let x = x0 + w * meter_fraction(v);
+            pt.line_segment(
+                [self.p(x, 172.0), self.p(x, 177.0)],
+                Stroke::new(1.0_f32, LEGEND),
+            );
+            pt.text(
+                self.p(x, 179.0),
+                Align2::CENTER_TOP,
+                format!("{v:.0}"),
+                font(MONO, 8.5),
+                LEGEND,
+            );
+        }
+
+        // Strip chart: paper, grid, ink trace of the last 60 s (log scale).
+        let paper = self.r(262.0, 196.0, 232.0, 70.0);
+        pt.rect_filled(paper, 2.0, PAPER);
+        let mut x = paper.left() + 10.0;
+        while x < paper.right() {
+            pt.line_segment(
+                [Pos2::new(x, paper.top()), Pos2::new(x, paper.bottom())],
+                Stroke::new(0.5_f32, GRID),
+            );
+            x += 10.0;
+        }
+        let mut y = paper.top() + 8.0;
+        while y < paper.bottom() {
+            pt.line_segment(
+                [Pos2::new(paper.left(), y), Pos2::new(paper.right(), y)],
+                Stroke::new(0.5_f32, GRID),
+            );
+            y += 8.0;
+        }
+        pt.rect_stroke(
+            paper,
+            2.0,
+            Stroke::new(1.0_f32, PAPER_EDGE),
+            StrokeKind::Inside,
+        );
+        pt.text(
+            self.p(268.0, 199.0),
+            Align2::LEFT_TOP,
+            "60 s chart",
+            font(MONO, 8.0),
+            PAPER_LABEL,
+        );
+        let pts: Vec<Pos2> = meter
+            .history()
+            .enumerate()
+            .map(|(i, r)| {
+                let px = paper.left()
+                    + 4.0
+                    + (paper.width() - 8.0) * (i as f32 / (METER_HISTORY - 1) as f32);
+                let py = paper.bottom() - 4.0 - (paper.height() - 16.0) * meter_fraction(r);
+                Pos2::new(px, py)
+            })
+            .collect();
+        if pts.len() >= 2 {
+            pt.add(Shape::line(pts, Stroke::new(1.2_f32, INK)));
+        }
+    }
+
+    // ---- Keys ----
+
+    #[allow(clippy::too_many_arguments)]
+    fn key(
+        &self,
+        ui: &mut egui::Ui,
+        pt: &egui::Painter,
+        id: &str,
+        rect: Rect,
+        label: &str,
+        sub: &str,
+        on: bool,
+        lamp_on: Color32,
+    ) -> bool {
+        let resp = ui
+            .interact(rect, ui.id().with(id), Sense::click())
+            .on_hover_cursor(CursorIcon::PointingHand);
+        let pressed = on || resp.is_pointer_button_down_on();
+        pt.rect_filled(rect.translate(Vec2::new(0.0, 3.0)), 3.0, KEY_EDGE);
+        let cap = rect.translate(Vec2::new(0.0, if pressed { 2.0 } else { 0.0 }));
+        let (top, bot) = if pressed {
+            (KEY_ON_TOP, KEY_ON_BOT)
+        } else {
+            (KEY_TOP, KEY_BOT)
+        };
+        pt.rect_filled(cap, 3.0, bot);
+        vgrad(pt, cap.shrink(1.5), top, bot);
+        pt.rect_stroke(
+            cap,
+            CornerRadius::same(3),
+            Stroke::new(1.0_f32, KEY_EDGE),
+            StrokeKind::Inside,
+        );
+        let lamp =
+            Rect::from_center_size(cap.center_top() + Vec2::new(0.0, 9.0), Vec2::new(18.0, 4.0));
+        pt.rect_filled(lamp, 1.0, if on { lamp_on } else { LAMP_OFF });
+        let ty = if sub.is_empty() {
+            cap.center().y + 4.0
+        } else {
+            cap.center().y + 2.0
+        };
+        pt.text(
+            Pos2::new(cap.center().x, ty),
+            Align2::CENTER_CENTER,
+            label,
+            font(COND, 11.0),
+            KEY_TEXT,
+        );
+        if !sub.is_empty() {
+            pt.text(
+                Pos2::new(cap.center().x, cap.bottom() - 9.0),
+                Align2::CENTER_CENTER,
+                sub,
+                font(MONO, 8.5),
+                KEY_SUB,
+            );
+        }
+        resp.clicked()
+    }
+
+    fn keys(
+        &self,
+        ui: &mut egui::Ui,
+        pt: &egui::Painter,
+        setter: &ParamSetter,
+        params: &PressingParams,
+    ) {
+        pt.text(
+            self.p(26.0, 302.0),
+            Align2::LEFT_TOP,
+            "PERCUSSION PROTECTION",
+            font(COND, 10.0),
+            LEGEND,
+        );
+        let prot = params.protection.value();
+        for (i, (mode, label, sub)) in [
+            (PercussionProtection::Off, "OFF", "32 ms"),
+            (PercussionProtection::Standard, "STANDARD", "≈ 1 s"),
+            (PercussionProtection::Extended, "EXTENDED", "≈ 2 s"),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let r = self.r(26.0 + i as f32 * 84.0, 320.0, 78.0, 46.0);
+            if self.key(ui, pt, label, r, label, sub, prot == mode, AMBER) && prot != mode {
                 setter.begin_set_parameter(&params.protection);
                 setter.set_parameter(&params.protection, mode);
                 setter.end_set_parameter(&params.protection);
             }
         }
-    });
-    ui.label(
-        RichText::new("Leaves claps and drums on a beat alone. Off is for live monitoring.")
-            .color(DIM)
-            .size(11.0),
-    );
 
-    // Monitor.
-    section(ui, "Listen to");
-    ui.horizontal(|ui| {
-        let current = params.monitor.value();
-        for (mode, name) in [
-            (Monitor::Declick, "Repaired audio"),
-            (Monitor::ClicksOnly, "Clicks only"),
-        ] {
-            let selected = current == mode;
-            let button = egui::Button::new(RichText::new(name).size(13.0))
-                .selected(selected)
-                .min_size(Vec2::new(150.0, 30.0));
-            if ui.add(button).clicked() && !selected {
+        pt.text(
+            self.p(300.0, 302.0),
+            Align2::LEFT_TOP,
+            "LISTEN",
+            font(COND, 10.0),
+            LEGEND,
+        );
+        let mon = params.monitor.value();
+        for (i, (mode, label, sub)) in [
+            (Monitor::Declick, "REPAIRED", "audio"),
+            (Monitor::ClicksOnly, "CLICKS", "only"),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let r = self.r(300.0 + i as f32 * 84.0, 320.0, 78.0, 46.0);
+            if self.key(ui, pt, label, r, label, sub, mon == mode, AMBER) && mon != mode {
                 setter.begin_set_parameter(&params.monitor);
                 setter.set_parameter(&params.monitor, mode);
                 setter.end_set_parameter(&params.monitor);
             }
         }
-    });
 
-    // Clicks-per-minute meter.
-    let sr_meter = f64::from(f32::from_bits(stats.sample_rate.load(Ordering::Relaxed)));
-    meter.update(
-        stats.samples.load(Ordering::Relaxed),
-        stats.regions.load(Ordering::Relaxed),
-        sr_meter,
-    );
-    section(ui, "Clicks per minute");
-    draw_meter(ui, meter, sr_meter);
+        let bypassed = params.bypass.value();
+        let r = self.r(300.0, 376.0, 162.0, 40.0);
+        if self.key(ui, pt, "BYPASS", r, "BYPASS", "", bypassed, RED) {
+            setter.begin_set_parameter(&params.bypass);
+            setter.set_parameter(&params.bypass, !bypassed);
+            setter.end_set_parameter(&params.bypass);
+        }
+    }
 
-    // Status line.
-    ui.add_space(6.0);
-    ui.separator();
-    let regions = stats.regions.load(Ordering::Relaxed);
-    let latency = stats.latency.load(Ordering::Relaxed);
-    let sr = f32::from_bits(stats.sample_rate.load(Ordering::Relaxed));
-    let status = if sr > 0.0 {
-        format!(
-            "Clicks repaired: {regions}    Latency: {:.0} ms    {:.1} kHz",
-            f64::from(latency) * 1000.0 / f64::from(sr),
-            sr / 1000.0
-        )
-    } else {
-        "Waiting for audio…".to_string()
-    };
-    ui.label(RichText::new(status).color(DIM).size(12.0));
+    // ---- Status band ----
+
+    fn status(&self, pt: &egui::Painter, stats: &UiStats, sr: f64) {
+        pt.rect_filled(self.r(0.0, 428.0, WIDTH as f32, 42.0), 0.0, FOOT);
+        let text = if sr > 0.0 {
+            let latency = f64::from(stats.latency.load(Ordering::Relaxed)) / sr;
+            let lat = if latency < 1.0 {
+                format!("{:.0} ms", latency * 1000.0)
+            } else {
+                format!("{latency:.2} s")
+            };
+            format!(
+                "LATENCY {lat}    {:.1} kHz    {} repaired",
+                sr / 1000.0,
+                stats.regions.load(Ordering::Relaxed)
+            )
+        } else {
+            "WAITING FOR AUDIO".to_string()
+        };
+        pt.text(
+            self.p(26.0, 449.0),
+            Align2::LEFT_CENTER,
+            text,
+            font(MONO, 9.5),
+            LEGEND,
+        );
+    }
 }
 
 #[cfg(test)]
@@ -397,7 +785,6 @@ mod tests {
         let pos = run(&mut m, (0, 0), 20.0, 240.0);
         let r = m.rate(SR).unwrap();
         assert!((r - 240.0).abs() < 15.0, "{r}");
-        // Rate change shows within the 10 s window.
         run(&mut m, pos, 12.0, 1200.0);
         let r = m.rate(SR).unwrap();
         assert!((r - 1200.0).abs() < 60.0, "{r}");
@@ -409,7 +796,7 @@ mod tests {
         let mut m = Meter::default();
         run(&mut m, (0, 0), 15.0, 600.0);
         assert!(m.rate(SR).is_some());
-        m.update(1_000, 0, SR); // counters went backwards: restarted engine
+        m.update(1_000, 0, SR);
         assert_eq!(m.rate(SR), None);
         assert_eq!(m.history().count(), 0);
     }
@@ -422,5 +809,26 @@ mod tests {
         assert_eq!(meter_zone(50.0).1, "clean");
         assert_eq!(meter_zone(300.0).1, "moderate");
         assert_eq!(meter_zone(1500.0).1, "heavy");
+    }
+
+    #[test]
+    fn double_click_resets_to_fifty_percent_the_default() {
+        assert_eq!(KNOB_RESET, 50.0);
+        assert_eq!(KNOB_RESET, crate::SENSITIVITY_DEFAULT);
+        let p = PressingParams::new(2.75);
+        assert_eq!(p.sensitivity.default_plain_value(), KNOB_RESET);
+        assert!((sensitivity_to_threshold(KNOB_RESET, 2.75) - 2.75).abs() < 1e-6);
+    }
+
+    #[test]
+    fn embedded_fonts_load() {
+        let f = fonts();
+        for name in [COND, MONO, MONO_M] {
+            assert!(f.font_data.contains_key(name), "{name}");
+            assert!(
+                f.families.contains_key(&FontFamily::Name(name.into())),
+                "{name}"
+            );
+        }
     }
 }

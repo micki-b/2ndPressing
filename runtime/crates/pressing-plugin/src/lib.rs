@@ -225,7 +225,8 @@ pub struct PressingParams {
     #[id = "protection"]
     pub protection: EnumParam<PercussionProtection>,
     /// Window size/open state, saved with the project.
-    #[persist = "editor-state"]
+    // New key for the Instrument faceplate: windows saved at the old size are not restored.
+    #[persist = "editor-state-b"]
     pub editor_state: Arc<nih_plug_egui::EguiState>,
 }
 
@@ -422,7 +423,11 @@ impl Plugin for SecondPressing {
     }
 
     fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
-        editor::create(self.params.clone(), self.ui_stats.clone())
+        editor::create(
+            self.params.clone(),
+            self.ui_stats.clone(),
+            self.model.post.threshold,
+        )
     }
 
     fn initialize(
