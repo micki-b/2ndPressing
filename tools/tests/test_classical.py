@@ -77,3 +77,32 @@ def test_detects_clicks_without_flagging_drums():
     # A perfect mask gains ~16 dB here (noise inside gaps is unpredictable);
     # the detector's own mask should get most of the way.
     assert _snr(clean[inner], y[inner]) > _snr(clean[inner], x[inner]) + 8
+
+
+def test_streaming_repair_fields():
+    rng = np.random.default_rng(3)
+    x = _music(SR // 2, rng)
+    mask = np.zeros(len(x), bool)
+    for a in (10000, 10040, 10080, 10120):       # runs < 2p apart: one group by default
+        mask[a:a + 12] = True
+    base = lsar_fill(x, mask)
+    # explicit values equal to the defaults change nothing
+    assert np.array_equal(base, lsar_fill(x, mask, ClassicalConfig(repair_context_right=1024, max_group=0)))
+    assert np.array_equal(base, lsar_fill(x, mask, ClassicalConfig(max_group=10_000)))
+    # shorter right context and split groups still repair well and touch nothing else
+    for cfg in (ClassicalConfig(repair_context_right=256), ClassicalConfig(max_group=60)):
+        y = lsar_fill(x, mask, cfg)
+        assert not np.array_equal(y, base)
+        assert np.array_equal(y[~mask], x[~mask])
+        assert _snr(x[mask], y[mask]) > _snr(x[mask], base[mask]) - 6
+
+
+def test_contrast_is_safe_at_array_edges():
+    from pressing_tools.classical import contrast
+    x = np.random.default_rng(0).standard_normal(1000) * 1e-3
+    x[0:3] += 0.5
+    x[-3:] += 0.5
+    assert contrast(x, 0, 5) > 10            # starts at sample 0 (was a negative index)
+    assert contrast(x, 995, 1000) > 10       # ends at len(x) (was an empty reduction)
+    assert contrast(x, 999, 1000) == 0.0     # nothing measurable left
+    assert contrast(x, 500, 520) == contrast(x.copy(), 500, 520)

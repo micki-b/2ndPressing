@@ -14,9 +14,16 @@ dependencies = [
 pressing-labels = "pressing_tools.labels:main"
 pressing-dataset = "pressing_tools.dataset:main"
 pressing-eval = "pressing_tools.evaluate:main"
+pressing-memmap = "pressing_tools.memmap:main"
+pressing-nn-prep = "pressing_tools.nn.prep:main"
+pressing-nn-train = "pressing_tools.nn.train:main"
+pressing-nn-export = "pressing_tools.nn.export:main"
+pressing-nn-synth = "pressing_tools.nn.synth:main"
+pressing-nn-report = "pressing_tools.nn.report:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]
+train = ["torch>=2.5", "onnx>=1.17", "onnxruntime>=1.20"]
 
 [build-system]
 requires = ["hatchling"]
@@ -24,3 +31,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pressing_tools"]
+
+[tool.uv]
+default-groups = ["dev", "train"]

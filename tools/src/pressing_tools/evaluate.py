@@ -6,6 +6,11 @@ A *method* provides three steps per channel (1-D float arrays at 48 kHz):
     mask(x, scores, thr) -> boolean region mask at a threshold
     repair(x, mask)      -> repaired signal
 
+A method with ``stereo = True`` instead provides ``scores_stereo(x2)``
+((2, L) -> (2, L)), called once per window; mask and repair stay per channel.
+An optional ``default_thresholds`` attribute sets the sweep when
+``--thresholds`` is not given.
+
 Detection is reported over a sweep of thresholds (event recall vs. false
 alarms per minute); repair quality at the method's default threshold. Labels:
 1 = repaired by VinylStudio, 2 = detected but left alone (reported separately,
@@ -18,6 +23,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
@@ -28,6 +34,7 @@ import soundfile as sf
 from pressing_tools import classical
 from pressing_tools.dataset import LABEL_CLEAN, LABEL_DETECTED, LABEL_REPAIRED, load_shard, repaired
 
+CLASSICAL_THRESHOLDS = [4.0, 5.0, 6.0, 8.0, 10.0, 12.0, 16.0, 24.0]
 EDGE = 2400          # samples ignored at each window edge (filter warm-up)
 TOL = 16             # samples of slack when matching predictions to labels
 SR = 48000
@@ -56,10 +63,30 @@ class ClassicalMethod:
         return classical.lsar_fill(x, m, self.cfg)
 
 
-def make_method(name: str, overrides: dict) -> ClassicalMethod:
+def make_method(name: str, overrides: dict):
     if name == "classical":
         return ClassicalMethod(replace(classical.ClassicalConfig(), **overrides))
+    if name == "neural":
+        from pressing_tools.nn.method import NeuralConfig, NeuralMethod
+        return NeuralMethod(NeuralConfig(**overrides))
     raise ValueError(f"unknown method {name}")
+
+
+def method_scores(method, x2: np.ndarray) -> np.ndarray:
+    """Per-channel scores for one window x2 (C, L): one stereo call, or one call per channel."""
+    if getattr(method, "stereo", False):
+        return np.asarray(method.scores_stereo(x2))
+    return np.stack([method.scores(x2[c]) for c in range(x2.shape[0])])
+
+
+def parse_value(v: str):
+    """--set values: int, then float, then str (so paths work)."""
+    for conv in (int, float):
+        try:
+            return conv(v)
+        except ValueError:
+            pass
+    return v
 
 
 # MARK: - Metric helpers
@@ -181,9 +208,9 @@ def evaluate_shard(path: str, method_name: str, overrides: dict, thresholds: lis
     rep = {"spike_raw": [], "spike_vs": [], "spike_ours": [], "agree_snr": [],
            "false_change_db": [], "gap": []}
     for w in range(W):
+        sw = method_scores(method, audio[w])
         for c in range(C):
-            x, lab = audio[w, c], label[w, c]
-            s = method.scores(x)
+            x, lab, s = audio[w, c], label[w, c], sw[c]
             for t in thresholds:
                 per_thr[t].add(detection_counts(lab, method.mask(x, s, t)))
 
@@ -231,8 +258,8 @@ def write_listening(path: Path, method, out_dir: Path, windows: int = 2) -> list
     counts = [(int((shard["label"][w] == LABEL_REPAIRED).sum()), w) for w in range(audio.shape[0])]
     written = []
     for _, w in sorted(counts, reverse=True)[:windows]:
-        ours = np.stack([method.repair(audio[w, c], method.mask(audio[w, c], method.scores(audio[w, c]),
-                                                                method.default_threshold))
+        sw = method_scores(method, audio[w])
+        ours = np.stack([method.repair(audio[w, c], method.mask(audio[w, c], sw[c], method.default_threshold))
                          for c in range(audio.shape[1])])
         stem = f"{path.stem[:50]}_w{w}"
         for tag, data in (("1_raw", audio[w]), ("2_vinylstudio", vs[w]), ("3_ours", ours)):
@@ -243,6 +270,53 @@ def write_listening(path: Path, method, out_dir: Path, windows: int = 2) -> list
 
 
 # MARK: - Aggregation and CLI
+
+
+def load_albums(data: Path) -> dict[str, str]:
+    """Manifest shard path ("val/X.npz") and bare file name -> "artist|album"."""
+    out: dict[str, str] = {}
+    mf = data / "manifest.jsonl"
+    if not mf.exists():
+        return out
+    for line in mf.read_text().splitlines():
+        if not line.strip():
+            continue
+        m = json.loads(line)
+        if "shard" not in m:
+            continue
+        album = f"{m.get('artist', '')}|{m.get('album', '')}"
+        out[m["shard"]] = album
+        out.setdefault(Path(m["shard"]).name, album)
+    return out
+
+
+def album_for(albums: dict[str, str], split: str, shard: str) -> str:
+    """Album key for a shard; shards outside the manifest get their own key ("|<stem>")."""
+    return albums.get(f"{split}/{shard}") or albums.get(shard) or f"|{Path(shard).stem}"
+
+
+def _plain(c: dict) -> dict:
+    """numpy scalars (from cumsum comparisons) -> JSON-serialisable Python numbers."""
+    return {k: v.item() if hasattr(v, "item") else v for k, v in c.items()}
+
+
+def shard_records(results: list[dict], albums: dict[str, str], split: str) -> list[dict]:
+    return [{"shard": r["shard"], "album": album_for(albums, split, r["shard"]),
+             "counts": {str(float(t)): _plain(c) for t, c in r["counts"].items()}} for r in results]
+
+
+def _safe(v) -> str:
+    """Filesystem-safe rendering of an override value; paths become a readable tail plus a hash."""
+    s = str(v)
+    if re.fullmatch(r"[A-Za-z0-9.=+-]{1,40}", s):
+        return s
+    tail = re.sub(r"[^A-Za-z0-9.=+-]+", "_", "_".join(Path(s).parts[-3:])).strip("_")
+    return f"{tail[-32:]}-{hashlib.sha1(s.encode()).hexdigest()[:8]}"
+
+
+def make_tag(method: str, split: str, overrides: dict) -> str:
+    split_tag = re.sub(r"[^A-Za-z0-9.=+-]+", "-", split.strip("/"))
+    return f"{method}_{split_tag}" + "".join(f"_{k}{_safe(v)}" for k, v in overrides.items())
 
 
 def _pct(v, q):
@@ -304,11 +378,12 @@ def print_report(agg: dict, method: str, split: str, default_thr: float) -> None
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="pressing-eval", description=__doc__.split("\n")[0])
     ap.add_argument("--data", type=Path, default=Path("../data/v1"))
-    ap.add_argument("--split", default="val", choices=["train", "val", "test"])
+    ap.add_argument("--split", default="val", help="any subdirectory of --data, e.g. val or synth/val_lvl2")
     ap.add_argument("--method", default="classical")
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
                     help="method config override, e.g. --set threshold=10")
-    ap.add_argument("--thresholds", default="4,5,6,8,10,12,16,24")
+    ap.add_argument("--thresholds", default=None,
+                    help="comma-separated sweep (default: the method's own list)")
     ap.add_argument("--gap-trials", type=int, default=3, help="synthetic gaps per channel-window")
     ap.add_argument("--limit", type=int, default=0, help="only the first N shards")
     ap.add_argument("--jobs", type=int, default=12)
@@ -320,10 +395,19 @@ def main(argv: list[str] | None = None) -> int:
     overrides = {}
     for kv in a.set:
         k, v = kv.split("=", 1)
-        overrides[k] = float(v) if "." in v else int(v)
+        overrides[k] = parse_value(v)
     method = make_method(a.method, overrides)
-    thresholds = sorted({float(t) for t in a.thresholds.split(",")} | {float(method.default_threshold)})
-    shards = sorted((a.data / a.split).glob("*.npz"))
+    if a.thresholds:
+        base = [float(t) for t in a.thresholds.split(",")]
+    else:
+        base = [float(t) for t in getattr(method, "default_thresholds", CLASSICAL_THRESHOLDS)]
+    thresholds = sorted(set(base) | {float(method.default_threshold)})
+    split_dir = a.data / a.split
+    if not split_dir.is_dir():
+        ap.error(f"{split_dir} is not a directory")
+    shards = sorted(split_dir.glob("*.npz"))
+    if not shards:
+        ap.error(f"no .npz shards in {split_dir}")
     if a.limit:
         shards = shards[:a.limit]
     print(f"{len(shards)} shards from {a.split}; thresholds {thresholds}", flush=True)
@@ -336,8 +420,10 @@ def main(argv: list[str] | None = None) -> int:
     agg["config"] = {"method": a.method, "overrides": overrides, "split": a.split,
                      "shards": len(shards)}
     a.out.mkdir(parents=True, exist_ok=True)
-    tag = f"{a.method}_{a.split}" + "".join(f"_{k}{v}" for k, v in overrides.items())
+    tag = make_tag(a.method, a.split, overrides)
     (a.out / f"{tag}.json").write_text(json.dumps(agg, indent=2))
+    (a.out / f"{tag}.shards.json").write_text(
+        json.dumps(shard_records(results, load_albums(a.data), a.split), indent=1))
     print_report(agg, a.method, a.split, float(method.default_threshold))
 
     if a.listen:
@@ -345,7 +431,7 @@ def main(argv: list[str] | None = None) -> int:
         ld.mkdir(parents=True, exist_ok=True)
         best = sorted(results, key=lambda r: -r["repaired_events"])[:a.listen]
         for r in best:
-            write_listening(a.data / a.split / r["shard"], method, ld)
+            write_listening(split_dir / r["shard"], method, ld)
         print(f"\nListening examples written to {ld}")
     return 0
 

@@ -40,6 +40,8 @@ class ClassicalConfig:
     contrast_context: int = 150
     repair_order: int = 32     # AR order for interpolation
     repair_context: int = 1024 # samples each side used to fit the repair model
+    repair_context_right: int = 0  # samples after the gap for the fit (0 = repair_context); streaming uses less
+    max_group: int = 0         # max span u1 - u0 of runs sharing one solve (0 = unlimited)
 
 
 # MARK: - AR helpers
@@ -105,11 +107,16 @@ def contrast(x: np.ndarray, a: int, b: int, ctx: int = 150, guard: int = 20) -> 
 
     Clicks are far sharper than their surroundings (median ~25x on the
     library); musical attacks that fool the AR detector are not (~7x)."""
-    lo, hi = max(1, a - ctx), min(len(x) - 1, b + ctx)
+    n = len(x)
+    a, b = max(1, a), min(n - 1, b)          # curvature needs a neighbour on each side
+    if b <= a:
+        return 0.0
+    lo, hi = max(1, a - ctx), min(n - 1, b + ctx)
     d = np.abs(x[lo + 1:hi + 1] - 2 * x[lo:hi] + x[lo - 1:hi - 1])
     ia, ib = a - lo, b - lo
-    around = np.r_[d[:max(1, ia - guard)], d[min(len(d) - 1, ib + guard):]]
-    return float(d[ia:ib].max() / (np.median(around) + 1e-12)) if ib > ia else 0.0
+    around = np.r_[d[:max(0, ia - guard)], d[ib + guard:]]
+    ref = np.median(around) if around.size else 0.0
+    return float(d[ia:ib].max() / (ref + 1e-12))
 
 
 def regions_from_scores(s: np.ndarray, cfg: ClassicalConfig,
@@ -155,11 +162,14 @@ def lsar_fill(x: np.ndarray, mask: np.ndarray, cfg: ClassicalConfig | None = Non
     cfg = cfg or ClassicalConfig()
     y = np.asarray(x, np.float64).copy()
     n, p, ctx = len(y), cfg.repair_order, cfg.repair_context
+    ctx_r = cfg.repair_context_right or ctx
     rs = runs(mask)
-    # Group runs closer than 2p: they share one solve.
+    # Group runs closer than 2p: they share one solve (unless the group would
+    # span more than max_group samples, which bounds the streaming wait).
     groups: list[list[tuple[int, int]]] = []
     for r in rs:
-        if groups and r[0] - groups[-1][-1][1] < 2 * p:
+        if groups and r[0] - groups[-1][-1][1] < 2 * p and \
+                (cfg.max_group <= 0 or r[1] - groups[-1][0][0] <= cfg.max_group):
             groups[-1].append(r)
         else:
             groups.append([r])
@@ -169,7 +179,7 @@ def lsar_fill(x: np.ndarray, mask: np.ndarray, cfg: ClassicalConfig | None = Non
         if u0 < p or u1 + p > n:
             continue  # not enough history at the edges; leave untouched
         left = y[max(0, u0 - ctx):u0]          # already repaired where needed
-        right = y[u1:min(n, u1 + ctx)]
+        right = y[u1:min(n, u1 + ctx_r)]
         r = np.zeros(p + 1)
         for piece in (left, right):
             if len(piece) > p:
@@ -179,6 +189,7 @@ def lsar_fill(x: np.ndarray, mask: np.ndarray, cfg: ClassicalConfig | None = Non
         c0, c1 = u0 - p, u1 + p
         seg = y[c0:c1]
         unknown = mask[c0:c1].copy()
+        unknown[:p] = False  # anything masked before u0 belongs to an earlier, already repaired group
         N = c1 - c0
         M = np.zeros((N - p, N))
         Ar = A[::-1]
