@@ -27,6 +27,9 @@ Audio never goes in this repo (`data/` is git-ignored).
   - `pressing_tools/classical.py` — baseline: AR matched-filter detector +
     curvature-contrast gate + LSAR interpolation.
   - `pressing_tools/evaluate.py` — evaluation harness (`pressing-eval`).
+  - `pressing_tools/nn/` — neural detector (ClickNet): features, model, prep
+    tables, crop sampler, loss, training, streaming reference, ONNX export,
+    synthetic benchmark, reports. Design: `docs/neural-detector-v1.md`.
   - `scripts/verify_crd.py` — checks `.crd` records against exported tracks.
 - `runtime/` — Rust real-time engine (planned: nih-plug VST3/CLAP + standalone).
 
@@ -93,3 +96,46 @@ Defaults: threshold 4, min_contrast 16 (tuned on val).
 On val the same settings found 74 % at 101 false alarms/min: albums vary a lot.
 The contrast gate is what makes this usable: without it, ~73 % recall costs
 ~390 false alarms/min (musical attacks in loud passages).
+
+## Neural detector v1 (ClickNet)
+
+Tiny causal TCN on gain-invariant derivative features, stereo-aware, 10.7 ms
+lookahead; LSAR repair unchanged. Design in `docs/neural-detector-v1.md`.
+
+```sh
+uv run pressing-nn-prep --split train            # tables (also val, test)
+uv run pressing-nn-train --run r2 --C 24 --D 512 # ~1 h on an M5 Pro (MPS)
+uv run pressing-nn-export --ckpt out/nn/r2/best.pt --out out/nn/r2/export
+uv run pressing-eval --method neural --split test \
+    --set model=out/nn/r2/export/model.onnx --set threshold=2.75
+```
+
+Selected model **R2** (C=24, 20,116 params, 80 KB, 4,920 MAC/sample/channel),
+logit threshold 2.75, no contrast gate, post 8 — chosen on val.
+
+### Test split (24 unseen albums), operating points chosen on val
+
+| | classical-stream | **neural R2** |
+|---|---|---|
+| VinylStudio repairs found | 59.9 % | **76.5 %** |
+| detected-only (masked) clicks found | 56.0 % | **68.9 %** |
+| false alarms | 49.6 / min | **27.5 / min** |
+| clean audio touched | 0.131 % | **0.030 %** |
+| recall @ 50 FA/min | 60.0 % | **82.4 %** (+22.4 pts, album bootstrap 95 % CI +19.5 … +28.8) |
+| FA/min at 60 % recall | 49.9 | **6.0** |
+| spike ratio left (median; VinylStudio 5.1) | 1.2 | 1.4 |
+
+Synthetic test clicks (exact truth, by host loudness <−45 / −45…−30 / −30…−18 /
+>−18 dBFS): neural 88.2 / 87.5 / 90.7 / 90.5 % vs classical 75.8 / 73.0 / 73.4 /
+73.9 %, with fewer false alarms in every band.
+
+Ablations (val): C=16 is ~1 point behind C=24; halving lookahead (D=256) costs
+~4 points and hurts masked clicks; training without click transplants scores
+slightly higher on VinylStudio's own labels but its recall falls with loudness
+on synthetic clicks (79 → 72 %), i.e. it learns VinylStudio's "leave loud
+clicks" habit — transplants remove that bias. Streaming implementation
+reproduces offline harness counts exactly.
+
+Listening: `tools/out/eval_final/neural/listen/` (raw / VinylStudio / ours) and
+`tools/out/eval_final/listen_false_alarms/` (50 random test false alarms, raw
+and repaired, with an index CSV).
