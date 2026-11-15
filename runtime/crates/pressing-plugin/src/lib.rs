@@ -51,6 +51,9 @@ pub const THRESHOLD_AGGRESSIVE: f32 = 1.0;
 /// Sensitivity that maps to the model's own threshold.
 pub const SENSITIVITY_DEFAULT: f32 = 50.0;
 
+/// Sensitivity slider increment in percent (the knob snaps to this).
+pub const SENSITIVITY_STEP: f32 = 5.0;
+
 /// The model threshold, clamped strictly inside the knob's range so both
 /// halves of the mapping stay monotonic.
 fn centre_threshold(model_threshold: f32) -> f32 {
@@ -190,10 +193,10 @@ impl PressingParams {
                     max: 100.0,
                 },
             )
-            .with_step_size(0.1)
+            .with_step_size(SENSITIVITY_STEP)
             .with_value_to_string(Arc::new(move |v| {
                 let t = sensitivity_to_threshold(v, model_threshold);
-                format!("{v:.1} % (threshold {t:.2})")
+                format!("{v:.0} % (threshold {t:.2})")
             }))
             .with_string_to_value(Arc::new(|s| {
                 s.split_whitespace()
@@ -441,7 +444,7 @@ mod tests {
         let params = PressingParams::new(2.75);
         let s = &params.sensitivity;
         let text = s.normalized_value_to_string(0.5, true);
-        assert_eq!(text, "50.0 % (threshold 2.75)");
+        assert_eq!(text, "50 % (threshold 2.75)");
         assert_eq!(s.string_to_normalized_value(&text), Some(0.5));
         assert_eq!(s.string_to_normalized_value("75%"), Some(0.75));
     }
