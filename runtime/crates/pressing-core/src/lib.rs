@@ -11,6 +11,8 @@ pub mod lsar;
 pub mod model;
 pub mod net;
 pub mod post;
+pub mod protect;
 
 pub use engine::{Declicker, OutputMode, ScoreSource, Stats};
 pub use model::{FeatureConfig, Model, ModelError, NetConfig, PostConfig};
+pub use protect::Protection;

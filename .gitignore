@@ -22,3 +22,5 @@ runtime/fixtures-large/
 
 # Audio Unit wrapper build output
 runtime/au/build/
+
+runtime/fixtures-protect/

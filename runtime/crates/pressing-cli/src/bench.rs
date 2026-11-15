@@ -8,7 +8,7 @@ use anyhow::{bail, Result};
 use pressing_core::features::FeatureState;
 use pressing_core::lsar::{LsarConfig, LsarSolver};
 use pressing_core::net::{Detector, StreamingNet};
-use pressing_core::{Declicker, Model, ScoreSource};
+use pressing_core::{Declicker, Model, Protection, ScoreSource};
 
 use crate::synth::{music_with_clicks, Rng};
 
@@ -20,6 +20,8 @@ pub struct BenchArgs {
     pub block: usize,
     /// Sample rate.
     pub rate: u32,
+    /// Percussion protection mode of the engine run.
+    pub protection: Protection,
 }
 
 /// Lowest `--rate` accepted (below it the synthetic material is meaningless).
@@ -68,7 +70,7 @@ pub fn run(args: &BenchArgs) -> Result<()> {
     );
 
     // ---- Engine ----
-    let mut eng = Declicker::new(&model, args.rate as f32);
+    let mut eng = Declicker::new_with(&model, args.rate as f32, args.protection);
     let (mut l, mut r) = (sig.left.clone(), sig.right.clone());
     // Warm-up (caches, branch predictors) on up to 1 s, then reset.
     let warm = n.min(args.rate as usize);

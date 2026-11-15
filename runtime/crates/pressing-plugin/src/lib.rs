@@ -12,6 +12,13 @@
 //!   [`THRESHOLD_AGGRESSIVE`]); linear in threshold on each half.
 //! - **Monitor** (`monitor`): `Declick` (repaired audio) or `Clicks only`
 //!   (what was removed: delayed input minus repaired output).
+//! - **Percussion protection** (`protection`, default Standard): leave claps
+//!   and drums that sit on a beat grid alone (rotation-periodic scratches are
+//!   still repaired). `Off` keeps the 32 ms latency for live monitoring;
+//!   `Standard` adds ~1 s and `Extended` ~2 s of look-ahead (Extended also
+//!   protects the start of a rhythmic passage). One processor per mode is
+//!   built in `initialize`; switching restarts the new one from silence and
+//!   reports the new latency to the host.
 //!
 //! Sample rates (see [`rate_support`]): 44.1 and 48 kHz are native (the
 //! model was trained at 48 kHz). 88.2 kHz and up is the spec's experimental
@@ -38,7 +45,7 @@ pub mod dsp;
 use std::sync::Arc;
 
 use nih_plug::prelude::*;
-use pressing_core::{Model, OutputMode};
+use pressing_core::{Model, OutputMode, Protection};
 
 use crate::dsp::Dsp;
 
@@ -166,6 +173,40 @@ pub enum Monitor {
     ClicksOnly,
 }
 
+/// Percussion protection (user-facing names include the latency).
+#[derive(Enum, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PercussionProtection {
+    /// No protection: lowest latency, for live monitoring.
+    #[id = "off"]
+    #[name = "Off (32 ms)"]
+    Off,
+    /// Claps and drums on a beat grid are left alone; ~1 s latency.
+    #[id = "standard"]
+    #[name = "Standard (~1 s)"]
+    Standard,
+    /// Like Standard with ~2 s look-ahead: also protects the start of a
+    /// rhythmic passage, at ~1 point of click recall.
+    #[id = "extended"]
+    #[name = "Extended (~2 s)"]
+    Extended,
+}
+
+impl PercussionProtection {
+    /// Engine mode.
+    pub fn engine(self) -> Protection {
+        match self {
+            PercussionProtection::Off => Protection::Off,
+            PercussionProtection::Standard => Protection::Standard,
+            PercussionProtection::Extended => Protection::Extended,
+        }
+    }
+
+    /// Index into the plugin's per-mode processors.
+    fn index(self) -> usize {
+        self as usize
+    }
+}
+
 /// Plugin parameters (see the crate docs for semantics).
 #[derive(Params)]
 pub struct PressingParams {
@@ -178,6 +219,9 @@ pub struct PressingParams {
     /// Output monitor mode.
     #[id = "monitor"]
     pub monitor: EnumParam<Monitor>,
+    /// Percussion protection (changes the reported latency).
+    #[id = "protection"]
+    pub protection: EnumParam<PercussionProtection>,
 }
 
 impl PressingParams {
@@ -206,6 +250,7 @@ impl PressingParams {
                     .ok()
             })),
             monitor: EnumParam::new("Monitor", Monitor::Declick),
+            protection: EnumParam::new("Percussion protection", PercussionProtection::Standard),
         }
     }
 }
@@ -216,8 +261,15 @@ impl PressingParams {
 pub struct SecondPressing {
     params: Arc<PressingParams>,
     model: Model,
-    /// Built in `initialize` (allocation happens there, never in `process`).
-    dsp: Option<Dsp>,
+    /// One processor per percussion protection mode, built in `initialize`
+    /// (allocation happens there, never in `process`).
+    dsps: Vec<Dsp>,
+    /// Index of the processor in use.
+    active: usize,
+    /// Latency to report from the next `process` call after a mode switch.
+    pending_latency: Option<u32>,
+    /// Test hook: overrides the protection parameter (hosts never set it).
+    protection_override: Option<PercussionProtection>,
 }
 
 impl Default for SecondPressing {
@@ -226,7 +278,10 @@ impl Default for SecondPressing {
         SecondPressing {
             params: Arc::new(PressingParams::new(model.post.threshold)),
             model,
-            dsp: None,
+            dsps: Vec::new(),
+            active: PercussionProtection::Standard.index(),
+            pending_latency: None,
+            protection_override: None,
         }
     }
 }
@@ -249,7 +304,27 @@ impl SecondPressing {
 
     /// Latency the engine reports, or `None` before the first `initialize`.
     pub fn latency_samples(&self) -> Option<usize> {
-        self.dsp.as_ref().map(Dsp::latency_samples)
+        self.dsps.get(self.active).map(Dsp::latency_samples)
+    }
+
+    /// Latency change waiting to be reported to the host (set when the
+    /// percussion protection mode switches; taken by `process`).
+    pub fn take_pending_latency(&mut self) -> Option<u32> {
+        self.pending_latency.take()
+    }
+
+    fn wanted(&self) -> usize {
+        self.protection_override
+            .unwrap_or_else(|| self.params.protection.value())
+            .index()
+    }
+
+    /// Test hook: act as if the protection parameter were `p` (nih-plug
+    /// parameters cannot be set outside a host). Takes effect on the next
+    /// `process_channels`, exactly like a parameter change.
+    #[doc(hidden)]
+    pub fn set_protection_override(&mut self, p: Option<PercussionProtection>) {
+        self.protection_override = p;
     }
 
     /// The whole body of [`Plugin::process`] apart from unwrapping the host
@@ -260,7 +335,18 @@ impl SecondPressing {
     pub fn process_channels(&mut self, channels: &mut [&mut [f32]]) {
         let threshold = self.threshold();
         let mode = self.output_mode();
-        let Some(dsp) = self.dsp.as_mut() else {
+        let wanted = self.wanted();
+        if wanted != self.active && wanted < self.dsps.len() {
+            // Switch processors: the new one restarts from silence (its
+            // delay line is empty) and the host is told the new latency.
+            self.active = wanted;
+            let dsp = &mut self.dsps[wanted];
+            dsp.set_threshold(threshold);
+            dsp.set_output(mode);
+            dsp.reset();
+            self.pending_latency = Some(u32::try_from(dsp.latency_samples()).unwrap_or(u32::MAX));
+        }
+        let Some(dsp) = self.dsps.get_mut(self.active) else {
             return;
         };
         dsp.set_threshold(threshold);
@@ -312,13 +398,21 @@ impl Plugin for SecondPressing {
         context: &mut impl InitContext<Self>,
     ) -> bool {
         let sr = buffer_config.sample_rate;
-        if self.dsp.as_ref().is_none_or(|d| d.sample_rate() != sr) {
+        if self.dsps.first().is_none_or(|d| d.sample_rate() != sr) {
             log_rate_support(sr);
-            self.dsp = Some(Dsp::new(&self.model, sr));
+            self.dsps = [
+                PercussionProtection::Off,
+                PercussionProtection::Standard,
+                PercussionProtection::Extended,
+            ]
+            .map(|p| Dsp::new_with(&self.model, sr, p.engine()))
+            .into();
         }
+        self.active = self.wanted();
+        self.pending_latency = None;
         let threshold = self.threshold();
         let mode = self.output_mode();
-        let Some(dsp) = self.dsp.as_mut() else {
+        let Some(dsp) = self.dsps.get_mut(self.active) else {
             return false;
         };
         dsp.set_threshold(threshold);
@@ -330,7 +424,7 @@ impl Plugin for SecondPressing {
     }
 
     fn reset(&mut self) {
-        if let Some(dsp) = self.dsp.as_mut() {
+        if let Some(dsp) = self.dsps.get_mut(self.active) {
             dsp.reset();
         }
     }
@@ -339,9 +433,12 @@ impl Plugin for SecondPressing {
         &mut self,
         buffer: &mut Buffer,
         _aux: &mut AuxiliaryBuffers,
-        _context: &mut impl ProcessContext<Self>,
+        context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
         self.process_channels(buffer.as_slice());
+        if let Some(latency) = self.take_pending_latency() {
+            context.set_latency_samples(latency);
+        }
         // Keep processing after the input stops: the delay line still holds
         // `latency` samples of output.
         ProcessStatus::Normal

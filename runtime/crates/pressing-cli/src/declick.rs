@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use anyhow::{bail, Result};
-use pressing_core::{Declicker, Model, OutputMode, Stats};
+use pressing_core::{Declicker, Model, OutputMode, Protection, Stats};
 
 use crate::audio::{self, OutFormat};
 
@@ -19,6 +19,8 @@ pub struct DeclickArgs {
     pub threshold: Option<f32>,
     /// Engine output mode.
     pub mode: OutputMode,
+    /// Percussion protection mode.
+    pub protection: Protection,
     /// Print the list of detected regions.
     pub report: bool,
     /// Write 32-bit float instead of 24-bit integer.
@@ -93,7 +95,7 @@ pub fn run(args: &DeclickArgs) -> Result<()> {
 
     // ---- Process ----
     let model = Model::embedded();
-    let mut eng = Declicker::new(&model, rate as f32);
+    let mut eng = Declicker::new_with(&model, rate as f32, args.protection);
     if let Some(t) = args.threshold {
         if !t.is_finite() {
             bail!("--threshold must be finite");
@@ -178,8 +180,9 @@ pub fn run(args: &DeclickArgs) -> Result<()> {
         args.mode
     );
     println!(
-        "engine:  threshold {:.3}, latency {} samples ({:.1} ms, compensated)",
+        "engine:  threshold {:.3}, percussion protection {:?}, latency {} samples ({:.1} ms, compensated)",
         args.threshold.unwrap_or(model.post.threshold),
+        args.protection,
         latency,
         latency as f64 * 1000.0 / f64::from(rate)
     );

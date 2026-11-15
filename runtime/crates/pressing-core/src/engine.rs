@@ -31,6 +31,7 @@
 use crate::lsar::{LsarConfig, LsarSolver};
 use crate::model::{Model, PostConfig};
 use crate::post::{contrast_with_scratch, RegionFinder};
+use crate::protect::{Decision, ProtectConfig, Protection, Protector};
 
 /// Anything that turns stereo samples into per-channel logits with a fixed
 /// delay (the network, or fixture scores in tests).
@@ -141,6 +142,10 @@ pub struct Declicker {
     cscratch: Vec<f64>,
     mode: OutputMode,
     stats: Stats,
+    /// Percussion protection (None = off).
+    protect: Option<Protector>,
+    protection: Protection,
+    decisions: Vec<Decision>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -179,13 +184,33 @@ impl Declicker {
     /// extreme rates are handled as described in [`rate_factor`] and never
     /// panic.
     pub fn new(model: &Model, sample_rate: f32) -> Self {
+        Self::new_with(model, sample_rate, Protection::Off)
+    }
+
+    /// Engine with the network and the given percussion protection mode.
+    /// Protection adds about 1 s (Standard) or 2 s (Extended) of latency.
+    pub fn new_with(model: &Model, sample_rate: f32, protection: Protection) -> Self {
         let source = Box::new(crate::net::Detector::new(model));
-        Self::build(model, sample_rate, source)
+        Self::build(model, sample_rate, source, protection)
     }
 
     /// Engine driven by an arbitrary score source at 48 kHz (tests).
     pub fn with_score_source(model: &Model, source: Box<dyn ScoreSource>) -> Self {
-        Self::build(model, 48_000.0, source)
+        Self::build(model, 48_000.0, source, Protection::Off)
+    }
+
+    /// Score-source engine at 48 kHz with percussion protection (tests).
+    pub fn with_score_source_protected(
+        model: &Model,
+        source: Box<dyn ScoreSource>,
+        protection: Protection,
+    ) -> Self {
+        Self::build(model, 48_000.0, source, protection)
+    }
+
+    /// The percussion protection mode this engine was built with.
+    pub fn protection(&self) -> Protection {
+        self.protection
     }
 
     /// Engine driven by an arbitrary score source at `sample_rate`.
@@ -209,15 +234,34 @@ impl Declicker {
         sample_rate: f32,
         source: Box<dyn ScoreSource>,
     ) -> Self {
-        Self::build(model, sample_rate, source)
+        Self::build(model, sample_rate, source, Protection::Off)
     }
 
-    fn build(model: &Model, sample_rate: f32, source: Box<dyn ScoreSource>) -> Self {
+    fn build(
+        model: &Model,
+        sample_rate: f32,
+        source: Box<dyn ScoreSource>,
+        protection: Protection,
+    ) -> Self {
         let factor = rate_factor(sample_rate);
         let decim = (factor >= 2).then(|| Decimator::new(factor));
         let fir_delay = decim.as_ref().map_or(0, |d| d.delay);
-        let latency = LATENCY_48K * factor + fir_delay;
         let post = model.post.clone();
+        let native_sr = if sample_rate.is_finite() && sample_rate > 0.0 {
+            f64::from(sample_rate)
+        } else {
+            48_000.0
+        };
+        let protect = protection.future_s().map(|f| {
+            Protector::new(
+                ProtectConfig::with_future(f),
+                &post,
+                native_sr,
+                factor as u64,
+            )
+        });
+        let latency =
+            LATENCY_48K * factor + fir_delay + protect.as_ref().map_or(0, Protector::extra_latency);
         let base = LsarConfig::default();
         let lsar = LsarConfig {
             order: base.order,
@@ -259,6 +303,9 @@ impl Declicker {
             cscratch: Vec::with_capacity(contrast_len),
             mode: OutputMode::default(),
             stats: Stats::default(),
+            protect,
+            protection,
+            decisions: Vec::with_capacity(256),
         }
     }
 
@@ -301,6 +348,9 @@ impl Declicker {
         self.src_n = 0;
         for ch in &mut self.chans {
             ch.reset();
+        }
+        if let Some(p) = &mut self.protect {
+            p.reset();
         }
         self.stats = Stats::default();
     }
@@ -381,6 +431,10 @@ impl Declicker {
             }
         }
 
+        if self.protect.is_some() {
+            self.apply_decisions(None);
+        }
+
         for c in 0..2 {
             self.solve_ready(c);
         }
@@ -390,6 +444,9 @@ impl Declicker {
         if let Some(o) = n.checked_sub(self.latency as u64) {
             let oslot = o as usize & self.ring_mask;
             for c in 0..2 {
+                if self.protect.is_some() {
+                    self.apply_decisions(Some((c, o)));
+                }
                 self.deadline(c, o);
                 let ch = &self.chans[c];
                 let x = ch.raw[oslot];
@@ -409,15 +466,44 @@ impl Declicker {
     /// Feed score `s` for detection target `t` to channel `c`.
     fn on_score(&mut self, c: usize, t: u64, s: f32) {
         let f = self.factor;
+        let mut user = None;
         if let Some(reg) = self.chans[c].finder.push(t, s) {
             let (a, b) = (reg.start * f, reg.end * f);
             if self.post.min_contrast <= 0.0
                 || self.contrast(c, a, b) >= f64::from(self.post.min_contrast)
             {
-                self.add_region(c, a, b);
+                if self.protect.is_some() {
+                    user = Some((reg.start, reg.end));
+                } else {
+                    self.add_region(c, a, b);
+                }
             }
         }
-        let frontier = self.chans[c].finder.frontier() * f;
+        if self.protect.is_some() {
+            let user_frontier = self.chans[c].finder.frontier();
+            let (chans, ring_mask, avail) = (&self.chans, self.ring_mask, self.n + 1);
+            let level =
+                |ch: usize, pk: u64, h: u64| level_db(&chans[ch].raw, ring_mask, avail, pk, h);
+            let forced = self
+                .protect
+                .as_mut()
+                .and_then(|p| p.on_score(c, t, s, user, user_frontier, &level));
+            if let Some(d) = forced {
+                self.stats.deadline_misses += 1;
+                self.apply_decision(d);
+            }
+        }
+        self.refresh(c);
+    }
+
+    /// Recompute channel `c`'s frontier (including undecided protection
+    /// candidates), complete the pending run and close the group if possible.
+    fn refresh(&mut self, c: usize) {
+        let f = self.factor;
+        let mut frontier = self.chans[c].finder.frontier() * f;
+        if let Some(p) = &self.protect {
+            frontier = frontier.min(p.undecided_floor(c));
+        }
         self.chans[c].frontier = frontier;
         if let Some(p) = self.chans[c].pending {
             if p.u1 < frontier {
@@ -426,6 +512,50 @@ impl Declicker {
             }
         }
         self.check_close(c);
+    }
+
+    /// Run the protector's decision step (or, with `Some((c, o))`, force the
+    /// decisions of channel `c` whose first sample `<= o` is about to leave the
+    /// delay line) and add the kept runs.
+    fn apply_decisions(&mut self, force: Option<(usize, u64)>) {
+        let mut out = std::mem::take(&mut self.decisions);
+        out.clear();
+        if let Some(p) = self.protect.as_mut() {
+            match force {
+                None => {
+                    let f = self.factor;
+                    let known = [0, 1].map(|c| {
+                        let ch = &self.chans[c];
+                        ch.finder.frontier() * f
+                    });
+                    let known = [0, 1].map(|c| known[c].min(p.undecided_open(c)));
+                    p.decide(known, &mut out);
+                }
+                Some((c, o)) => {
+                    while p.queue_front_u0(c).is_some_and(|u0| u0 <= o)
+                        && out.len() < out.capacity()
+                    {
+                        if let Some(d) = p.decide_front(c, true) {
+                            out.push(d);
+                        }
+                    }
+                }
+            }
+        }
+        for &d in &out {
+            if d.forced {
+                self.stats.deadline_misses += 1;
+            }
+            self.apply_decision(d);
+        }
+        self.decisions = out;
+    }
+
+    fn apply_decision(&mut self, d: Decision) {
+        if d.keep {
+            self.add_region(d.channel, d.u0, d.u1);
+        }
+        self.refresh(d.channel);
     }
 
     /// `classical.contrast` on the raw input around native region `[a, b)`.
@@ -684,6 +814,24 @@ impl Channel {
         self.queue.clear();
         self.frontier = 0;
     }
+}
+
+// ---- Levels (percussion protection) ----
+
+/// `10·log10(mean(x²) + 1e-20)` over `[pk - h, pk + h + 1)` of a ring,
+/// clipped to the samples written so far (`[0, avail)`), like the reference.
+fn level_db(raw: &[f32], ring_mask: usize, avail: u64, pk: u64, h: u64) -> f64 {
+    let lo = pk.saturating_sub(h);
+    let hi = (pk + h + 1).min(avail);
+    if hi <= lo {
+        return 10.0 * 1e-20f64.log10();
+    }
+    let mut e = 0.0f64;
+    for i in lo..hi {
+        let v = f64::from(raw[i as usize & ring_mask]);
+        e += v * v;
+    }
+    10.0 * (e / (hi - lo) as f64 + 1e-20).log10()
 }
 
 // ---- Fixed-capacity FIFO ----

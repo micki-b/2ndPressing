@@ -58,8 +58,9 @@ be bit-exact over the full length.
 ## CLI
 
 ```sh
-pressing declick IN OUT.wav [--threshold 2.75] [--mode declick|clicks-only|bypass] [--report] [--float]
-pressing bench [--seconds 20] [--block 512] [--rate 48000]
+pressing declick IN OUT.wav [--threshold 2.75] [--mode declick|clicks-only|bypass]
+                 [--protection off|standard|extended] [--report] [--float]
+pressing bench [--seconds 20] [--block 512] [--rate 48000] [--protection off|standard|extended]
 pressing parity DIR        # e.g. crates/pressing-core/tests/fixtures or fixtures-large
 ```
 
@@ -71,6 +72,8 @@ pressing parity DIR        # e.g. crates/pressing-core/tests/fixtures or fixture
   - `--float` forces 32-bit float.
 - `--threshold`: lower values are more sensitive.
 - `--mode clicks-only` writes what was removed.
+- `--protection` (default `standard`): percussion protection, see below. The CLI
+  compensates for its latency, so the setting only affects the result.
 - `--report` lists every detected region.
 - The CLI refuses to overwrite its input, including through hard links and symlinks.
 - Channels: more than 2 channels are processed as independent stereo pairs; mono
@@ -84,6 +87,23 @@ Parameters:
 - **Sensitivity**: 0 to 100 %. 50 % is the model threshold 2.75, 0 % is
   threshold 6.0 (gentle) and 100 % is threshold 1.0 (aggressive).
 - **Monitor**: `Declick` or `Clicks only`.
+- **Percussion protection** (default `Standard (~1 s)`): leaves claps, snares and
+  hi-hats alone when they sit on a beat grid. A defect that repeats at exactly
+  one turntable rotation (1.8 s at 33⅓, 1.333 s at 45, 0.769 s at 78 RPM) is
+  still repaired.
+  - `Off (32 ms)`: no protection; use it for live monitoring.
+  - `Standard (~1 s)`: 1 s look-ahead.
+  - `Extended (~2 s)`: 2 s look-ahead; also protects the first second or so of a
+    rhythmic passage, at about 1 point of click recall.
+  - Changing it changes the reported latency. The plugin switches to a processor
+    built for that mode, which starts from silence for the length of its delay.
+    During playback nih-plug asks the host to restart the plugin and reports the
+    new latency on re-activation (in Logic, via the Audio Unit wrapper).
+
+  Measured in Python on 54 held-out minutes (Standard): VinylStudio repairs
+  found 91.0 → 89.4 %, real click shapes injected at random times 88.0 → 87.9 %;
+  in the clapping song of the test sample, 290 → 55 regions repaired. The Rust
+  engine matches the Python reference exactly on all parity fixtures.
 
 Copy the bundles from `target/bundled/` to:
 
@@ -118,8 +138,10 @@ copy it again; the component does not need rebuilding.
 
 ## Latency
 
-- **44.1 and 48 kHz:** 1536 samples, about 32 ms at 48 kHz. The plugin reports it to the
-  host and the CLI compensates for it.
+- **44.1 and 48 kHz:** 1536 samples, about 32 ms at 48 kHz, with percussion
+  protection off. Standard adds `ceil(1.018·sr) + 2048` (52,448 samples in
+  total at 48 kHz, 1.09 s); Extended adds `ceil(2.018·sr) + 2048` (100,448,
+  2.09 s). The plugin reports it to the host and the CLI compensates for it.
 - **88.2 kHz and above (experimental):** `1536*factor + 32*factor`, where `factor = round(sr/48000)`.
   At 88.2 and 96 kHz that is 3136 samples.
 - **Deadline misses:** a group that cannot be solved before it leaves the delay
@@ -135,6 +157,8 @@ using `pressing bench` (20 s of synthetic stereo, block 512):
 | 44.1 kHz | 482 | 47x | 2.1 % | 412 ns | 54 ns |
 | 48 kHz | 489 | 43x | 2.3 % | 415 ns | 55 ns |
 | 96 kHz (decimated detection) | 317 per 96 kHz sample | 33x | 3.0 % | | |
+| 48 kHz, protection Standard | 525 | 40x | 2.5 % | | |
+| 48 kHz, protection Extended | 528 | 40x | 2.5 % | | |
 
 - **LSAR solve:** about 26 us for an 8-sample gap and about 208 us for a 480-sample
   gap. At the measured click rate that is about 0.02 % of a core.
@@ -163,7 +187,19 @@ using `pressing bench` (20 s of synthetic stereo, block 512):
 - **CLI pipes.** Piping `pressing` output into `head` ends with a broken-pipe panic.
 - **AAC edit lists.** Only single-edit lists are applied; other edit-list layouts
   are ignored with a warning.
-- **clap-validator.** 30 of 44 tests pass, 4 fail and 10 are skipped.
+- **Percussion protection.** Only the rhythm (beat-grid) cue is used. Percussion
+  that is not regular, and the first ~1 s of a rhythmic passage in Standard mode,
+  can still be repaired. Tuned and verified at 48 kHz; at other rates the same
+  time constants are used.
+- **clap-validator, latency changes.** With the protection parameter, three tests
+  (`param-set-events`, `param-set-no-cookies`, `param-fuzz-sample-accurate`)
+  report `clap_host_latency::changed` called outside `activate`. nih-plug requests
+  a restart while the host is processing but calls `latency changed` directly
+  when the plugin is active and not processing (a documented nih-plug
+  simplification). Hosts generally accept this; the Audio Unit route restarts
+  the plugin and reports the latency inside activation.
+- **clap-validator, state.** Before the protection parameter: 30 of 44 tests
+  passed, 4 failed and 10 were skipped.
   - The failures are `state-invalid-random` (it crashes in nih-plug's state loader
     on corrupt data) and three `state-reproducibility-*` tests.
   - nih-plug's own `gain` example, built at the pinned revision, fails the same

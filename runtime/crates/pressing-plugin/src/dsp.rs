@@ -19,7 +19,7 @@
 //! Nothing in [`Dsp::process`], [`Dsp::process_mono`], [`Dsp::set_output`],
 //! [`Dsp::set_threshold`] or [`Dsp::reset`] allocates.
 
-use pressing_core::{Declicker, Model, OutputMode, Stats};
+use pressing_core::{Declicker, Model, OutputMode, Protection, Stats};
 
 /// Internal block size; host blocks of any length are split into chunks of at
 /// most this many samples (scratch lives on the stack).
@@ -61,7 +61,13 @@ impl Dsp {
     /// `initialize`, never from the audio callback). Starts in
     /// [`OutputMode::Declick`] at the model's threshold.
     pub fn new(model: &Model, sample_rate: f32) -> Self {
-        let mut engine = Declicker::new(model, sample_rate);
+        Self::new_with(model, sample_rate, Protection::Off)
+    }
+
+    /// [`Dsp::new`] with a percussion protection mode (adds ~1 s for
+    /// Standard, ~2 s for Extended to the latency).
+    pub fn new_with(model: &Model, sample_rate: f32, protection: Protection) -> Self {
+        let mut engine = Declicker::new_with(model, sample_rate, protection);
         engine.set_mode(OutputMode::Declick);
         let latency = engine.latency_samples();
         let rate = if sample_rate.is_finite() && sample_rate > 0.0 {
@@ -89,6 +95,11 @@ impl Dsp {
     /// Sample rate this processor was built for.
     pub fn sample_rate(&self) -> f32 {
         self.sample_rate
+    }
+
+    /// Percussion protection mode of this processor.
+    pub fn protection(&self) -> Protection {
+        self.engine.protection()
     }
 
     /// Fixed latency in samples (report to the host); independent of mode.

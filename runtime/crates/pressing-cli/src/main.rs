@@ -16,7 +16,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand, ValueEnum};
-use pressing_core::OutputMode;
+use pressing_core::{OutputMode, Protection};
 
 #[derive(Parser)]
 #[command(
@@ -46,6 +46,11 @@ enum Cmd {
         /// What to write: repaired audio, the removed clicks, or the input.
         #[arg(long, value_enum, default_value_t = Mode::Declick)]
         mode: Mode,
+        /// Percussion protection: leave claps/drums on a beat grid alone.
+        /// standard ≈ 1 s look-ahead, extended ≈ 2 s (protects more of the
+        /// start of a rhythmic passage), off = no protection.
+        #[arg(long, value_enum, default_value_t = ProtectionArg::Standard)]
+        protection: ProtectionArg,
         /// Also list every detected region.
         #[arg(long)]
         report: bool,
@@ -67,6 +72,9 @@ enum Cmd {
         /// Sample rate in Hz.
         #[arg(long, default_value_t = 48_000)]
         rate: u32,
+        /// Percussion protection mode for the engine benchmark.
+        #[arg(long, value_enum, default_value_t = ProtectionArg::Off)]
+        protection: ProtectionArg,
     },
     /// Run fixture parity checks (features, scores, masks, repaired).
     Parity {
@@ -84,6 +92,27 @@ enum Mode {
     ClicksOnly,
     /// Input unchanged.
     Bypass,
+}
+
+/// `--protection` values.
+#[derive(Clone, Copy, ValueEnum)]
+enum ProtectionArg {
+    /// No percussion protection (lowest latency).
+    Off,
+    /// About 1 s of look-ahead.
+    Standard,
+    /// About 2 s of look-ahead.
+    Extended,
+}
+
+impl From<ProtectionArg> for Protection {
+    fn from(p: ProtectionArg) -> Self {
+        match p {
+            ProtectionArg::Off => Protection::Off,
+            ProtectionArg::Standard => Protection::Standard,
+            ProtectionArg::Extended => Protection::Extended,
+        }
+    }
 }
 
 impl From<Mode> for OutputMode {
@@ -104,6 +133,7 @@ fn main() -> ExitCode {
             output,
             threshold,
             mode,
+            protection,
             report,
             float,
             max_seconds,
@@ -112,6 +142,7 @@ fn main() -> ExitCode {
             output,
             threshold,
             mode: mode.into(),
+            protection: protection.into(),
             report,
             float,
             max_seconds,
@@ -120,10 +151,12 @@ fn main() -> ExitCode {
             seconds,
             block,
             rate,
+            protection,
         } => bench::run(&bench::BenchArgs {
             seconds,
             block,
             rate,
+            protection: protection.into(),
         }),
         Cmd::Parity { dir } => parity::run(&dir),
     };

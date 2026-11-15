@@ -125,7 +125,7 @@ fn declick_96k_preserves_rate_and_length() {
     let rate = 96_000;
     let (_, clicked, _) = signal(rate, 0.75, 3);
     write_wav(&inp, &[&clicked[0], &clicked[1]], rate, 24, false);
-    let stdout = ok(&["declick", s(&inp), s(&out)]);
+    let stdout = ok(&["declick", s(&inp), s(&out), "--protection", "off"]);
     assert!(stdout.contains("latency 3136 samples"), "{stdout}");
     let (spec, y) = read_wav(&out);
     assert_eq!(
@@ -292,4 +292,22 @@ fn parity_fails_when_nothing_is_compared() {
     let all = parity_fails(dir.path(), "FAIL  masks");
     assert!(all.contains("of 0 compared samples"), "{all}");
     assert!(all.contains("FAIL  end-to-end"), "{all}");
+}
+
+#[test]
+fn declick_protection_modes_report_latency() {
+    let dir = tmp();
+    let (inp, out) = (dir.path().join("in.wav"), dir.path().join("out.wav"));
+    let rate = 48_000;
+    let (_, clicked, _) = signal(rate, 0.5, 2);
+    write_wav(&inp, &[&clicked[0], &clicked[1]], rate, 24, false);
+    for (mode, latency) in [("off", 1536), ("standard", 52_448), ("extended", 100_448)] {
+        let stdout = ok(&["declick", s(&inp), s(&out), "--protection", mode]);
+        assert!(
+            stdout.contains(&format!("latency {latency} samples")),
+            "{mode}: {stdout}"
+        );
+        let (_, y) = read_wav(&out);
+        assert_eq!(y[0].len(), clicked[0].len(), "{mode}: length preserved");
+    }
 }
