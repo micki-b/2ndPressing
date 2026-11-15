@@ -36,6 +36,16 @@ The event train is built from the detector's logits at a fixed internal
 threshold (``event_thr``), not the user's sensitivity, so a gentler user
 threshold does not weaken the rhythm evidence.
 
+Two refinements (2026-11-15, after listening tests on the Mirage sample):
+level matching -- only events within +-``level_match_db`` of the region's
+10 ms RMS level count as rhythm evidence, so quiet surface crackle does not
+dilute the beat statistic of loud percussion -- and event-level decisions --
+protection spreads to detections within +-``cluster_s`` (both channels), as
+one clap yields several detections and repairing only some still damages it.
+
+Known limit: the first ~1 s of a rhythmic passage has little evidence within
+the lookahead; ``future=2.0`` protects more of it at ~1 point of recall.
+
 Streaming (Rust) form: keep a ring buffer of event timestamps covering
 ``past + future`` seconds (a few hundred u32s at most); a region is released
 ``future`` seconds after its peak, when its whole window is known. Cost per
@@ -64,8 +74,14 @@ class Protector:
     def __init__(self, past: float = 3.0, future: float = 1.0, tol: float = 0.008,
                  p_min: float = 0.15, p_max: float = 0.9, n_periods: int = 120,
                  theta: float = 2.5, min_points: int = 4, event_thr: float | None = 2.75,
-                 rot_tol: float = 0.025, rot_precision: float = 0.0005, veto: bool = True):
+                 rot_tol: float = 0.025, rot_precision: float = 0.0005, veto: bool = True,
+                 level_match_db: float | None = 10.0, level_win: float = 0.010,
+                 cluster_s: float = 0.010):
         self.past, self.future, self.tol = past, future, tol
+        # Only events of similar loudness count as rhythm evidence: quiet surface
+        # crackle must not dilute the beat statistic of loud percussion.
+        self.level_match_db, self.level_win = level_match_db, level_win
+        self.cluster_s = cluster_s
         self.theta, self.min_points, self.event_thr = theta, min_points, event_thr
         self.rot_precision, self.veto = rot_precision, veto
         P = np.exp(np.linspace(np.log(p_min), np.log(p_max), n_periods))
@@ -117,6 +133,20 @@ class Protector:
                     return True
         return False
 
+    # MARK: - Levels
+
+    def _levels(self, x2, sr) -> list[np.ndarray]:
+        """Per channel, per sample: RMS level (dBFS) over +-level_win around it."""
+        h = max(1, int(self.level_win * sr))
+        out = []
+        for c in range(2):
+            e = np.concatenate([[0.0], np.cumsum(np.asarray(x2[c], np.float64) ** 2)])
+            n = len(x2[c])
+            i = np.arange(n)
+            lo, hi = np.clip(i - h, 0, n), np.clip(i + h + 1, 0, n)
+            out.append(10 * np.log10((e[hi] - e[lo]) / (hi - lo) + 1e-20))
+        return out
+
     # MARK: - Protector API
 
     def keep(self, x2, s2, regions, sr):
@@ -127,24 +157,42 @@ class Protector:
         else:
             peaks = _event_times(s2, x2, thr)
         ch = [p / sr for p in peaks]
-        allt = np.sort(np.concatenate(ch))
-        out = []
+        lvl = self._levels(x2, sr)
+        ev_lvl = [lvl[c][peaks[c]] for c in range(2)]
+        order = np.argsort(np.concatenate(ch), kind="stable")
+        allt = np.concatenate(ch)[order]
+        all_lvl = np.concatenate(ev_lvl)[order]
+        # Pass 1: rhythm evidence per region.
+        info = []                                   # (c, index, t, rhythmic)
         for c in range(2):
-            res = []
-            for a, b in regions[c]:
-                t = (a + int(np.argmax(s2[c, a:b]))) / sr
+            for i, (a, b) in enumerate(regions[c]):
+                pk = a + int(np.argmax(s2[c, a:b]))
+                t = pk / sr
                 lo = np.searchsorted(allt, t - self.past - self.tol)
                 hi = np.searchsorted(allt, t + self.future + self.tol, side="right")
                 ev = allt[lo:hi] - t
-                ev = ev[np.abs(ev) > 0.002]
-                protect = self.rhythm_score(ev) > self.theta
-                if protect and self.veto:
-                    same = ch[c][(ch[c] > t - 2 * 1.02 * max(ROTATION_PERIODS) - 0.01)
-                                 & (ch[c] < t + 1.02 * max(ROTATION_PERIODS) + 0.01)] - t
-                    same = same[np.abs(same) > 0.002]
-                    # only past events and those within the lookahead are available
-                    same = same[same <= self.future + self.tol]
-                    protect = not self.rotation_periodic(same, sr)
-                res.append(not protect)
-            out.append(res)
+                sel = np.abs(ev) > 0.002
+                if self.level_match_db is not None:
+                    sel &= np.abs(all_lvl[lo:hi] - lvl[c][pk]) <= self.level_match_db
+                info.append((c, i, t, self.rhythm_score(ev[sel]) > self.theta))
+        # Pass 2: one decision per acoustic event. A clap yields several
+        # detections (both channels, split pieces); repairing some of them
+        # still damages it, so protection spreads to detections within
+        # +-cluster_s of a rhythmic one.
+        rt = np.array(sorted(t for _, _, t, r in info if r))
+        out = [[True] * len(regions[c]) for c in range(2)]
+        for c, i, t, rhythmic in info:
+            protect = rhythmic
+            if not protect and self.cluster_s > 0 and len(rt):
+                j = np.searchsorted(rt, t)
+                near = [abs(rt[k] - t) for k in (j - 1, j) if 0 <= k < len(rt)]
+                protect = min(near) <= self.cluster_s
+            if protect and self.veto:
+                same = ch[c][(ch[c] > t - 2 * 1.02 * max(ROTATION_PERIODS) - 0.01)
+                             & (ch[c] < t + 1.02 * max(ROTATION_PERIODS) + 0.01)] - t
+                same = same[np.abs(same) > 0.002]
+                # only past events and those within the lookahead are available
+                same = same[same <= self.future + self.tol]
+                protect = not self.rotation_periodic(same, sr)
+            out[c][i] = not protect
         return out
