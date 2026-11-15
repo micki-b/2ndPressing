@@ -47,9 +47,9 @@ enum Cmd {
         #[arg(long, value_enum, default_value_t = Mode::Declick)]
         mode: Mode,
         /// Percussion protection: leave claps/drums on a beat grid alone.
-        /// standard ≈ 1 s look-ahead, extended ≈ 2 s (protects more of the
-        /// start of a rhythmic passage), off = no protection.
-        #[arg(long, value_enum, default_value_t = ProtectionArg::Standard)]
+        /// extended ≈ 2 s look-ahead (protects the start of a rhythmic passage
+        /// too), standard ≈ 1 s, off = no protection. Latency is compensated.
+        #[arg(long, value_enum, default_value_t = ProtectionArg::Extended)]
         protection: ProtectionArg,
         /// Also list every detected region.
         #[arg(long)]

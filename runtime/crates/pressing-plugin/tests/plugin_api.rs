@@ -9,7 +9,7 @@ use pressing_plugin::{PercussionProtection, SecondPressing};
 
 /// Latency is reported on every `initialize`, including after a sample-rate
 /// change on the same instance, and matches the engine for that rate (the
-/// default percussion protection is Standard).
+/// default percussion protection is Extended).
 #[test]
 fn initialize_reports_latency_on_every_rate_change() {
     let model = Model::embedded();
@@ -25,7 +25,7 @@ fn initialize_reports_latency_on_every_rate_change() {
             48_000.0,
             48_000.0,
         ] {
-            let want = Dsp::new_with(&model, sr, Protection::Standard).latency_samples();
+            let want = Dsp::new_with(&model, sr, Protection::Extended).latency_samples();
             let (ok, latency) = common::initialize(&mut plugin, channels, sr);
             assert!(ok, "initialize at {sr} Hz");
             assert_eq!(latency, Some(want as u32), "reported latency at {sr} Hz");
@@ -97,12 +97,12 @@ fn process_before_initialize_is_a_no_op() {
 #[test]
 fn default_params_match_dsp_bit_exact() {
     let model = Model::embedded();
-    let len = 120_000; // > the Standard protection latency (~52k samples), so decisions happen
+    let len = 220_000; // > the Extended protection latency (~100k samples), so decisions happen
     for sr in [44_100.0f32, 48_000.0] {
         let l0 = common::signal(len, 0.01, 1_333, 0.8);
         let r0 = common::signal(len, 0.017, 1_333, -0.6);
 
-        let mut dsp = Dsp::new_with(&model, sr, Protection::Standard);
+        let mut dsp = Dsp::new_with(&model, sr, Protection::Extended);
         dsp.set_threshold(model.post.threshold);
         dsp.set_output(OutputMode::Declick);
         let (mut dl, mut dr) = (l0.clone(), r0.clone());
@@ -120,7 +120,7 @@ fn default_params_match_dsp_bit_exact() {
         assert_eq!(pl, dl, "left at {sr} Hz");
         assert_eq!(pr, dr, "right at {sr} Hz");
 
-        let mut dsp = Dsp::new_with(&model, sr, Protection::Standard);
+        let mut dsp = Dsp::new_with(&model, sr, Protection::Extended);
         dsp.set_threshold(model.post.threshold);
         dsp.set_output(OutputMode::Declick);
         let mut dm = l0.clone();

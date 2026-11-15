@@ -12,7 +12,7 @@
 //!   [`THRESHOLD_AGGRESSIVE`]); linear in threshold on each half.
 //! - **Monitor** (`monitor`): `Declick` (repaired audio) or `Clicks only`
 //!   (what was removed: delayed input minus repaired output).
-//! - **Percussion protection** (`protection`, default Standard): leave claps
+//! - **Percussion protection** (`protection`, default Extended): leave claps
 //!   and drums that sit on a beat grid alone (rotation-periodic scratches are
 //!   still repaired). `Off` keeps the 32 ms latency for live monitoring;
 //!   `Standard` adds ~1 s and `Extended` ~2 s of look-ahead (Extended also
@@ -225,8 +225,10 @@ pub struct PressingParams {
 }
 
 impl PressingParams {
-    /// Parameters whose sensitivity display is relative to `model_threshold`.
-    pub fn new(model_threshold: f32) -> Self {
+    /// The plugin's parameters. `_model_threshold` is kept for API stability;
+    /// the Sensitivity display is the percentage only (see
+    /// [`sensitivity_to_threshold`] for the mapping).
+    pub fn new(_model_threshold: f32) -> Self {
         PressingParams {
             bypass: BoolParam::new("Bypass", false).make_bypass(),
             sensitivity: FloatParam::new(
@@ -238,10 +240,9 @@ impl PressingParams {
                 },
             )
             .with_step_size(SENSITIVITY_STEP)
-            .with_value_to_string(Arc::new(move |v| {
-                let t = sensitivity_to_threshold(v, model_threshold);
-                format!("{v:.0} % (threshold {t:.2})")
-            }))
+            // Short on purpose: hosts' generic editors (e.g. Logic's) give the
+            // value a narrow fixed-width box. The threshold is an internal detail.
+            .with_value_to_string(Arc::new(|v| format!("{v:.0} %")))
             .with_string_to_value(Arc::new(|s| {
                 s.split_whitespace()
                     .next()?
@@ -250,7 +251,7 @@ impl PressingParams {
                     .ok()
             })),
             monitor: EnumParam::new("Monitor", Monitor::Declick),
-            protection: EnumParam::new("Percussion protection", PercussionProtection::Standard),
+            protection: EnumParam::new("Percussion protection", PercussionProtection::Extended),
         }
     }
 }
@@ -279,7 +280,7 @@ impl Default for SecondPressing {
             params: Arc::new(PressingParams::new(model.post.threshold)),
             model,
             dsps: Vec::new(),
-            active: PercussionProtection::Standard.index(),
+            active: PercussionProtection::Extended.index(),
             pending_latency: None,
             protection_override: None,
         }
@@ -541,7 +542,7 @@ mod tests {
         let params = PressingParams::new(2.75);
         let s = &params.sensitivity;
         let text = s.normalized_value_to_string(0.5, true);
-        assert_eq!(text, "50 % (threshold 2.75)");
+        assert_eq!(text, "50 %");
         assert_eq!(s.string_to_normalized_value(&text), Some(0.5));
         assert_eq!(s.string_to_normalized_value("75%"), Some(0.75));
     }

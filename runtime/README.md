@@ -72,7 +72,7 @@ pressing parity DIR        # e.g. crates/pressing-core/tests/fixtures or fixture
   - `--float` forces 32-bit float.
 - `--threshold`: lower values are more sensitive.
 - `--mode clicks-only` writes what was removed.
-- `--protection` (default `standard`): percussion protection, see below. The CLI
+- `--protection` (default `extended`): percussion protection, see below. The CLI
   compensates for its latency, so the setting only affects the result.
 - `--report` lists every detected region.
 - The CLI refuses to overwrite its input, including through hard links and symlinks.
@@ -84,10 +84,12 @@ pressing parity DIR        # e.g. crates/pressing-core/tests/fixtures or fixture
 Parameters:
 
 - **Bypass**: the host bypass. It crossfades over 10 ms and keeps the latency.
-- **Sensitivity**: 0 to 100 %. 50 % is the model threshold 2.75, 0 % is
-  threshold 6.0 (gentle) and 100 % is threshold 1.0 (aggressive).
+- **Sensitivity**: 0 to 100 % in 5 % steps, shown as just the percentage (hosts'
+  generic editors have a narrow value box). 50 % is the model threshold 2.75,
+  0 % is threshold 6.0 (gentle) and 100 % is threshold 1.0 (aggressive).
 - **Monitor**: `Declick` or `Clicks only`.
-- **Percussion protection** (default `Standard (~1 s)`): leaves claps, snares and
+- **Percussion protection** (default `Extended (~2 s)`, preferred in listening
+  tests on the start of a clapping song): leaves claps, snares and
   hi-hats alone when they sit on a beat grid. A defect that repeats at exactly
   one turntable rotation (1.8 s at 33⅓, 1.333 s at 45, 0.769 s at 78 RPM) is
   still repaired.
