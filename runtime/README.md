@@ -98,6 +98,24 @@ For a universal binary, build with nih-plug's `bundle-universal`, which is untes
 Only the macOS arm64 bundle has been built and validated. On Windows and Linux,
 `cargo check` passes, but no bundle has been built or loaded in a host.
 
+## Audio Unit (Logic Pro, GarageBand, other AU hosts)
+
+Logic only loads Audio Units, so `au/` builds an AUv2 wrapper with
+[clap-wrapper](https://github.com/free-audio/clap-wrapper) (0.17.0, MIT). The
+`.component` is a thin shim that loads `2ndPressing Declicker.clap` at runtime,
+so **both** must be installed. Requires CMake (`brew install cmake`).
+
+```sh
+cargo xtask bundle pressing-plugin --release
+cmake -S au -B au/build -DCMAKE_BUILD_TYPE=Release && cmake --build au/build
+cp -R "target/bundled/2ndPressing Declicker.clap"   ~/Library/Audio/Plug-Ins/CLAP/
+cp -R "au/build/2ndPressing Declicker.component"    ~/Library/Audio/Plug-Ins/Components/
+killall -9 AudioComponentRegistrar; auval -v aufx Dclk SnPr   # expect: AU VALIDATION SUCCEEDED
+```
+
+Type `aufx`, subtype `Dclk`, manufacturer `SnPr`. After rebuilding the CLAP,
+copy it again; the component does not need rebuilding.
+
 ## Latency
 
 - **44.1 and 48 kHz:** 1536 samples, about 32 ms at 48 kHz. The plugin reports it to the
