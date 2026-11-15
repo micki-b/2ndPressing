@@ -279,6 +279,9 @@ pub struct SecondPressing {
     protection_override: Option<PercussionProtection>,
     /// Live numbers for the window (atomics; written by `process`).
     ui_stats: Arc<editor::UiStats>,
+    /// Input samples processed by the active engine since it (re)started
+    /// (the clicks-per-minute meter's clock).
+    samples_done: u64,
 }
 
 impl Default for SecondPressing {
@@ -292,6 +295,7 @@ impl Default for SecondPressing {
             pending_latency: None,
             protection_override: None,
             ui_stats: Arc::new(editor::UiStats::default()),
+            samples_done: 0,
         }
     }
 }
@@ -355,21 +359,30 @@ impl SecondPressing {
             dsp.set_output(mode);
             dsp.reset();
             self.pending_latency = Some(u32::try_from(dsp.latency_samples()).unwrap_or(u32::MAX));
+            self.samples_done = 0;
         }
         let Some(dsp) = self.dsps.get_mut(self.active) else {
             return;
         };
         dsp.set_threshold(threshold);
         dsp.set_output(mode);
-        match channels {
-            [l, r, ..] => dsp.process(l, r),
-            [m] => dsp.process_mono(m),
-            [] => {}
-        }
+        let n = match channels {
+            [l, r, ..] => {
+                dsp.process(l, r);
+                l.len().min(r.len())
+            }
+            [m] => {
+                dsp.process_mono(m);
+                m.len()
+            }
+            [] => 0,
+        };
+        self.samples_done += n as u64;
         let st = dsp.stats();
         self.ui_stats.publish(
             st.regions,
             st.samples_repaired,
+            self.samples_done,
             dsp.latency_samples(),
             dsp.sample_rate(),
         );
@@ -431,6 +444,7 @@ impl Plugin for SecondPressing {
         }
         self.active = self.wanted();
         self.pending_latency = None;
+        self.samples_done = 0;
         let threshold = self.threshold();
         let mode = self.output_mode();
         let Some(dsp) = self.dsps.get_mut(self.active) else {
@@ -448,6 +462,7 @@ impl Plugin for SecondPressing {
         if let Some(dsp) = self.dsps.get_mut(self.active) {
             dsp.reset();
         }
+        self.samples_done = 0;
     }
 
     fn process(
