@@ -21,6 +21,7 @@ use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 
 use nih_plug::prelude::*;
+use nih_plug_egui::egui::text::{LayoutJob, TextFormat};
 use nih_plug_egui::egui::{
     self, Align2, Color32, CornerRadius, CursorIcon, FontData, FontDefinitions, FontFamily, FontId,
     Mesh, Pos2, Rect, Sense, Shape, Stroke, StrokeKind, Vec2,
@@ -269,6 +270,31 @@ fn font(family: &str, size: f32) -> FontId {
     FontId::new(size, FontFamily::Name(family.into()))
 }
 
+/// The wordmark "2ndPressing" with "nd" as a moderate superscript (60 % size,
+/// top-aligned). `left_bottom` is the bottom-left of the text; returns its width.
+pub fn brand(p: &egui::Painter, left_bottom: Pos2, size: f32, color: Color32) -> f32 {
+    let full = TextFormat {
+        font_id: font(COND, size),
+        color,
+        valign: egui::Align::BOTTOM,
+        ..Default::default()
+    };
+    let sup = TextFormat {
+        font_id: font(COND, size * 0.6),
+        color,
+        valign: egui::Align::TOP,
+        ..Default::default()
+    };
+    let mut job = LayoutJob::default();
+    job.append("2", 0.0, full.clone());
+    job.append("nd", 0.0, sup);
+    job.append("Pressing", 0.0, full);
+    let galley = p.layout_job(job);
+    let size = galley.size();
+    p.galley(left_bottom - Vec2::new(0.0, size.y), galley, color);
+    size.x
+}
+
 /// Vertical gradient rectangle.
 fn vgrad(p: &egui::Painter, r: Rect, top: Color32, bot: Color32) {
     let mut m = Mesh::default();
@@ -324,15 +350,9 @@ impl Faceplate {
             PANEL_BOT,
         );
         pt.rect_filled(self.r(0.0, 0.0, WIDTH as f32, 54.0), 0.0, BAND);
+        let brand_w = brand(pt, self.p(26.0, 38.0), 18.0, BAND_TEXT);
         pt.text(
-            self.p(26.0, 38.0),
-            Align2::LEFT_BOTTOM,
-            "2ndPressing",
-            font(COND, 18.0),
-            BAND_TEXT,
-        );
-        pt.text(
-            self.p(130.0, 38.0),
+            self.p(26.0 + brand_w + 8.0, 38.0),
             Align2::LEFT_BOTTOM,
             "DECLICKER",
             font(COND, 18.0),
