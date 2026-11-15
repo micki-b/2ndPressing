@@ -29,6 +29,8 @@ pressing-core = { path = "../pressing-core" }
 # Pinned for reproducible builds. `assert_process_allocs` aborts on any
 # allocation inside `process()` in debug builds (no effect in release).
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", rev = "de421011f41a6d10fc8c7a6084e4f4dee0143683", features = ["assert_process_allocs"] }
+# The custom window (same pinned revision as nih_plug).
+nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug", rev = "de421011f41a6d10fc8c7a6084e4f4dee0143683" }
 
 [dev-dependencies]
 # Same source as nih_plug's `assert_process_allocs` dependency, whose global

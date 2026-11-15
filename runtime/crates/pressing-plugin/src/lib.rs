@@ -1,7 +1,8 @@
 //! 2ndPressing Declicker: nih-plug VST3/CLAP plugin and standalone app
 //! around [`pressing_core::Declicker`].
 //!
-//! Parameters (generic host UI):
+//! Window: a custom editor (see [`editor`]); hosts can still show their
+//! generic view. Parameters:
 //! - **Bypass** (`bypass`): the host's bypass parameter. Bypassed output is
 //!   the input delayed by the same latency; switching crossfades over
 //!   [`dsp::CROSSFADE_SECONDS`] and never changes the reported latency.
@@ -41,6 +42,7 @@
 //! `cargo build -p pressing-plugin --release --features standalone`.
 
 pub mod dsp;
+pub mod editor;
 
 use std::sync::Arc;
 
@@ -222,6 +224,9 @@ pub struct PressingParams {
     /// Percussion protection (changes the reported latency).
     #[id = "protection"]
     pub protection: EnumParam<PercussionProtection>,
+    /// Window size/open state, saved with the project.
+    #[persist = "editor-state"]
+    pub editor_state: Arc<nih_plug_egui::EguiState>,
 }
 
 impl PressingParams {
@@ -252,6 +257,7 @@ impl PressingParams {
             })),
             monitor: EnumParam::new("Monitor", Monitor::Declick),
             protection: EnumParam::new("Percussion protection", PercussionProtection::Extended),
+            editor_state: editor::default_state(),
         }
     }
 }
@@ -271,6 +277,8 @@ pub struct SecondPressing {
     pending_latency: Option<u32>,
     /// Test hook: overrides the protection parameter (hosts never set it).
     protection_override: Option<PercussionProtection>,
+    /// Live numbers for the window (atomics; written by `process`).
+    ui_stats: Arc<editor::UiStats>,
 }
 
 impl Default for SecondPressing {
@@ -283,6 +291,7 @@ impl Default for SecondPressing {
             active: PercussionProtection::Extended.index(),
             pending_latency: None,
             protection_override: None,
+            ui_stats: Arc::new(editor::UiStats::default()),
         }
     }
 }
@@ -357,6 +366,13 @@ impl SecondPressing {
             [m] => dsp.process_mono(m),
             [] => {}
         }
+        let st = dsp.stats();
+        self.ui_stats.publish(
+            st.regions,
+            st.samples_repaired,
+            dsp.latency_samples(),
+            dsp.sample_rate(),
+        );
     }
 }
 
@@ -390,6 +406,10 @@ impl Plugin for SecondPressing {
 
     fn params(&self) -> Arc<dyn Params> {
         self.params.clone()
+    }
+
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
+        editor::create(self.params.clone(), self.ui_stats.clone())
     }
 
     fn initialize(
