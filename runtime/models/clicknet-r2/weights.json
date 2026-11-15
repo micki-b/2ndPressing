@@ -1,0 +1,382 @@
+{
+ "format": "clicknet-v1-weights",
+ "dtype": "f32le",
+ "total_bytes": 80464,
+ "layers": [
+  {
+   "name": "stem.weight",
+   "shape": [
+    24,
+    3,
+    8
+   ],
+   "offset": 0,
+   "nbytes": 2304
+  },
+  {
+   "name": "stem.bias",
+   "shape": [
+    24
+   ],
+   "offset": 2304,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.0.dil.weight",
+   "shape": [
+    24,
+    24,
+    3
+   ],
+   "offset": 2400,
+   "nbytes": 6912
+  },
+  {
+   "name": "blocks.0.dil.bias",
+   "shape": [
+    24
+   ],
+   "offset": 9312,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.0.mix.weight",
+   "shape": [
+    24,
+    24,
+    1
+   ],
+   "offset": 9408,
+   "nbytes": 2304
+  },
+  {
+   "name": "blocks.0.mix.bias",
+   "shape": [
+    24
+   ],
+   "offset": 11712,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.1.dil.weight",
+   "shape": [
+    24,
+    24,
+    3
+   ],
+   "offset": 11808,
+   "nbytes": 6912
+  },
+  {
+   "name": "blocks.1.dil.bias",
+   "shape": [
+    24
+   ],
+   "offset": 18720,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.1.mix.weight",
+   "shape": [
+    24,
+    24,
+    1
+   ],
+   "offset": 18816,
+   "nbytes": 2304
+  },
+  {
+   "name": "blocks.1.mix.bias",
+   "shape": [
+    24
+   ],
+   "offset": 21120,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.2.dil.weight",
+   "shape": [
+    24,
+    24,
+    3
+   ],
+   "offset": 21216,
+   "nbytes": 6912
+  },
+  {
+   "name": "blocks.2.dil.bias",
+   "shape": [
+    24
+   ],
+   "offset": 28128,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.2.mix.weight",
+   "shape": [
+    24,
+    24,
+    1
+   ],
+   "offset": 28224,
+   "nbytes": 2304
+  },
+  {
+   "name": "blocks.2.mix.bias",
+   "shape": [
+    24
+   ],
+   "offset": 30528,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.3.dil.weight",
+   "shape": [
+    24,
+    24,
+    3
+   ],
+   "offset": 30624,
+   "nbytes": 6912
+  },
+  {
+   "name": "blocks.3.dil.bias",
+   "shape": [
+    24
+   ],
+   "offset": 37536,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.3.mix.weight",
+   "shape": [
+    24,
+    24,
+    1
+   ],
+   "offset": 37632,
+   "nbytes": 2304
+  },
+  {
+   "name": "blocks.3.mix.bias",
+   "shape": [
+    24
+   ],
+   "offset": 39936,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.4.dil.weight",
+   "shape": [
+    24,
+    24,
+    3
+   ],
+   "offset": 40032,
+   "nbytes": 6912
+  },
+  {
+   "name": "blocks.4.dil.bias",
+   "shape": [
+    24
+   ],
+   "offset": 46944,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.4.mix.weight",
+   "shape": [
+    24,
+    24,
+    1
+   ],
+   "offset": 47040,
+   "nbytes": 2304
+  },
+  {
+   "name": "blocks.4.mix.bias",
+   "shape": [
+    24
+   ],
+   "offset": 49344,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.5.dil.weight",
+   "shape": [
+    24,
+    24,
+    3
+   ],
+   "offset": 49440,
+   "nbytes": 6912
+  },
+  {
+   "name": "blocks.5.dil.bias",
+   "shape": [
+    24
+   ],
+   "offset": 56352,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.5.mix.weight",
+   "shape": [
+    24,
+    24,
+    1
+   ],
+   "offset": 56448,
+   "nbytes": 2304
+  },
+  {
+   "name": "blocks.5.mix.bias",
+   "shape": [
+    24
+   ],
+   "offset": 58752,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.6.dil.weight",
+   "shape": [
+    24,
+    24,
+    3
+   ],
+   "offset": 58848,
+   "nbytes": 6912
+  },
+  {
+   "name": "blocks.6.dil.bias",
+   "shape": [
+    24
+   ],
+   "offset": 65760,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.6.mix.weight",
+   "shape": [
+    24,
+    24,
+    1
+   ],
+   "offset": 65856,
+   "nbytes": 2304
+  },
+  {
+   "name": "blocks.6.mix.bias",
+   "shape": [
+    24
+   ],
+   "offset": 68160,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.7.dil.weight",
+   "shape": [
+    24,
+    24,
+    3
+   ],
+   "offset": 68256,
+   "nbytes": 6912
+  },
+  {
+   "name": "blocks.7.dil.bias",
+   "shape": [
+    24
+   ],
+   "offset": 75168,
+   "nbytes": 96
+  },
+  {
+   "name": "blocks.7.mix.weight",
+   "shape": [
+    24,
+    24,
+    1
+   ],
+   "offset": 75264,
+   "nbytes": 2304
+  },
+  {
+   "name": "blocks.7.mix.bias",
+   "shape": [
+    24
+   ],
+   "offset": 77568,
+   "nbytes": 96
+  },
+  {
+   "name": "head1.weight",
+   "shape": [
+    24,
+    24,
+    1
+   ],
+   "offset": 77664,
+   "nbytes": 2304
+  },
+  {
+   "name": "head1.bias",
+   "shape": [
+    24
+   ],
+   "offset": 79968,
+   "nbytes": 96
+  },
+  {
+   "name": "head2.weight",
+   "shape": [
+    4,
+    24,
+    1
+   ],
+   "offset": 80064,
+   "nbytes": 384
+  },
+  {
+   "name": "head2.bias",
+   "shape": [
+    4
+   ],
+   "offset": 80448,
+   "nbytes": 16
+  }
+ ],
+ "net_config": {
+  "C": 24,
+  "blocks": 8,
+  "stem_k": 8,
+  "stride": 4,
+  "D": 512
+ },
+ "D": 512,
+ "receptive_field": 2048,
+ "features": {
+  "EPS": 1e-06,
+  "FLOOR": 1e-05,
+  "NW": 2048,
+  "ASINH_SCALE": 8.0,
+  "N_FEATURES": 3
+ },
+ "post": {
+  "threshold": 2.75,
+  "ext_drop": 2.0,
+  "merge": 8,
+  "pre": 2,
+  "post": 8,
+  "max_region": 480,
+  "min_contrast": 0.0,
+  "contrast_context": 150
+ },
+ "layout": {
+  "conv_weight": "[out, in, k] row-major; bias [out]",
+  "stem": "Conv1d(3->C, k=8, stride=4), left pad 4, ReLU",
+  "blocks": "y = ReLU(x + mix(ReLU(dil(x)))); dil k=3 dilation d=2^i frames, left pad 2d",
+  "head": "head2(ReLU(head1(h))) -> (stride, F); logit[stride*j + r] = y[r, j]",
+  "input": "per channel [g1_self, g2_self, g1_other]; logit[n] predicts target n - D"
+ }
+}

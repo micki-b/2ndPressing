@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = ["crates/pressing-core", "crates/pressing-cli", "crates/pressing-plugin", "xtask"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/"
+# Minimum toolchain: `<[T]>::as_chunks` (stable since 1.88).
+rust-version = "1.88"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[profile.bench]
+lto = "thin"
+codegen-units = 1
