@@ -12,6 +12,7 @@ dependencies = [
 
 [project.scripts]
 pressing-labels = "pressing_tools.labels:main"
+pressing-dataset = "pressing_tools.dataset:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]
