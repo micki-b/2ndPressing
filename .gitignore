@@ -1,0 +1,18 @@
+# Audio data never goes in git
+data/
+*.wav
+*.flac
+*.aiff
+*.aif
+out/
+
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+
+# Rust
+target/
+
+.DS_Store
