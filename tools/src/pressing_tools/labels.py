@@ -54,6 +54,8 @@ class LabelConfig:
     pad_ms: float = 0.25             # widen each detected region on both sides
     merge_gap_ms: float = 1.0        # merge regions closer than this
     max_lag_seconds: float = 2.0     # search range for the offset
+    long_filter: bool = True         # first apply a long global filter (rumble HPF etc.)
+    long_nperseg: int = 32768        # FFT size for the global filter estimate
     drift_tolerance: int = 2         # samples; more than this flags the pair
 
 
@@ -174,8 +176,27 @@ def is_impulsive(r: np.ndarray, peak_ref: np.ndarray, k: float, rel: float, sub:
             & (np.abs(r) > rel * peak_ref))
 
 
+def global_filter(x: np.ndarray, y: np.ndarray, nperseg: int) -> np.ndarray:
+    """Apply to x the long linear filter that best maps x -> y.
+
+    Estimated from Welch cross-spectra over the whole signal (H = Pxy / Pxx),
+    so a few click spans barely influence it. Needed because real exports can
+    include rumble high-pass filters whose impulse responses last tens of
+    milliseconds -- far beyond the short per-block FIR.
+    """
+    x = x.astype(np.float64)
+    _, pxy = signal.csd(x, y, nperseg=nperseg)        # conj(X) * Y
+    _, pxx = signal.welch(x, nperseg=nperseg)
+    h = np.fft.irfft(pxy / (pxx + 1e-30), n=nperseg)
+    h = np.roll(h, nperseg // 2) * signal.windows.tukey(nperseg, 0.25)
+    return signal.fftconvolve(x, h, mode="full")[nperseg // 2: nperseg // 2 + len(x)]
+
+
 def match_residual(x: np.ndarray, y: np.ndarray, cfg: LabelConfig, sr: int) -> np.ndarray:
-    """Residual y - H(x) with H a per-block robust FIR fit. x, y are 1-D float."""
+    """Residual y - H(x): optional long global filter, then a per-block robust
+    short FIR fit for what remains. x, y are 1-D float."""
+    if cfg.long_filter and len(x) >= 4 * cfg.long_nperseg:
+        x = global_filter(x, y.astype(np.float64), cfg.long_nperseg)
     c = cfg.fir_half_taps
     taps = 2 * c + 1
     xp = np.pad(x.astype(np.float64), (c, c))

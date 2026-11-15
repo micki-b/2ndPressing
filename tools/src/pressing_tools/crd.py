@@ -18,11 +18,21 @@ Layout (little-endian)::
             kind 11/12:   u16 value (7..127; likely detection strength)
         u16  0              end-of-channel marker
 
-Verified: kind 1/2 payload samples are the *replacement* waveform (smooth
-interpolation) at 16-bit scale, while the raw side audio at the same
-positions still contains the click. Kind 11/12 records carry no samples;
-whether VinylStudio applied them in exported tracks is still to be confirmed
-against the de-clicked iTunes tracks.
+Semantics, verified 2026-11-14 against 24 exported iTunes tracks from 12
+albums (scripts/verify_crd.py):
+
+- kind 2 (and the rare kind 1): an **applied repair**. The payload is the
+  replacement waveform (int16; divide by 32768 for float). The raw side still
+  holds the click; the exported track contains exactly these samples (after
+  pasting them in, the export matches the raw side to the residual floor).
+- kind 11 / 12: **detected but not repaired**. The export is unchanged at
+  these spans (indistinguishable from random control spans). Useful as
+  borderline / hard-negative examples. ``param`` (7..127) is probably the
+  detection strength.
+- kinds 3 and 4 appear in 3 of 578 files and are not decoded yet.
+
+Exports additionally have gain (~+2 dB), a rumble high-pass and, on loud
+records, hard clipping from that gain -- none of which is declicking.
 """
 
 from __future__ import annotations
