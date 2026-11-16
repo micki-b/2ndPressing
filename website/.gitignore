@@ -9,3 +9,5 @@ public/downloads/**/*.msi
 deploy.env
 # Listening-demo audio (rebuild with tools/listening-demo, see its README)
 public/listen/**/audio/
+# Private, password-gated previews (copyrighted audio, secrets): never in git
+public/preview/
