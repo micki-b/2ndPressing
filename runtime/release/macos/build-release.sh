@@ -52,6 +52,13 @@ mkdir -p "$OUT/stage/app" "$OUT/stage/clap" "$OUT/stage/vst3" "$OUT/stage/au"
 cp -R "target/bundled/$NAME.clap" "$OUT/stage/clap/"
 cp -R "target/bundled/$NAME.vst3" "$OUT/stage/vst3/"
 cp -R "$COMPONENT" "$OUT/stage/au/"
+# The AU's Info.plist must carry AudioComponents (type/subtype/manufacturer)
+# or macOS never registers it. clap-wrapper copies its generated plist into
+# the bundle only on a fresh link, and CMake overwrites it with a default on
+# every configure, so always install the generated one explicitly.
+cp au/build-universal/pressing_auv2-build-helper-output/auv2_Info.plist "$OUT/stage/au/$NAME.component/Contents/Info.plist"
+[ "$(plutil -extract AudioComponents.0.subtype raw "$OUT/stage/au/$NAME.component/Contents/Info.plist" 2>/dev/null)" = "Dclk" ] \
+  || { echo "AU Info.plist has no AudioComponents entry"; exit 1; }
 setplist() { /usr/libexec/PlistBuddy -c "Set :$2 $3" "$1/Contents/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :$2 string $3" "$1/Contents/Info.plist"; }
 for b in "$OUT/stage/clap/$NAME.clap:clap" "$OUT/stage/vst3/$NAME.vst3:vst3"; do
   p=${b%:*}; kind=${b##*:}
