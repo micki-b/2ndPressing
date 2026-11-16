@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>2ndPressing beta for Mac</title>
+<title>2ndPressing beta</title>
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="Beta download of 2ndPressing for macOS: app, Audio Unit, VST3 and CLAP.">
+<meta name="description" content="Beta download of 2ndPressing for macOS and Windows: app and plugins.">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="stylesheet" href="/assets/site.css?v=5">
+<link rel="stylesheet" href="/assets/site.css?v=6">
 </head>
 <body>
 
@@ -23,20 +23,31 @@
 
 <section class="band get beta-hero">
   <div class="wrap get-inner">
-    <div class="get-card">
+    <div class="get-card beta-card">
       <div class="get-head">
         <span class="brand compact">2<span class="nd">nd</span>Pressing</span><span class="get-dim">Declicker · beta 0.1.1</span>
       </div>
       <div class="get-body">
         <h1 class="beta-title">Thanks for testing</h1>
         <p>This is an early build for a small group of testers. Please don’t share the link; send anyone interested to <a href="/">secondpressing.com</a>.</p>
-        <a class="key primary" href="/downloads/macOS/2ndPressing-0.1.1.pkg" download><span class="lamp" aria-hidden="true"></span>Download for Mac</a>
-        <dl class="beta-facts">
-          <dt>Version</dt><dd>0.1.1 beta</dd>
-          <dt>File</dt><dd>2ndPressing-0.1.1.pkg, 16.9 MB</dd>
-          <dt>Needs</dt><dd>macOS 11 Big Sur or later, Apple Silicon or Intel</dd>
-          <dt>Signed</dt><dd>Developer ID, notarized by Apple</dd>
-        </dl>
+        <div class="platforms-dl">
+          <div class="dl">
+            <a class="key primary" href="/downloads/macOS/2ndPressing-0.1.1.pkg" download><span class="lamp" aria-hidden="true"></span>Download for Mac</a>
+            <dl class="beta-facts">
+              <dt>File</dt><dd>2ndPressing-0.1.1.pkg, 16.9 MB</dd>
+              <dt>Needs</dt><dd>macOS 11 or later, Apple Silicon or Intel</dd>
+              <dt>Signed</dt><dd>Developer ID, notarized by Apple</dd>
+            </dl>
+          </div>
+          <div class="dl">
+            <a class="key primary" href="/downloads/Windows/2ndPressing-0.1.1-windows-x64-setup.exe" download><span class="lamp" aria-hidden="true"></span>Download for Windows</a>
+            <dl class="beta-facts">
+              <dt>File</dt><dd>2ndPressing-0.1.1-windows-x64-setup.exe, 3.0 MB</dd>
+              <dt>Needs</dt><dd>Windows 10 or 11, 64-bit</dd>
+              <dt>Signed</dt><dd>Not yet: Windows will show a warning (see below)</dd>
+            </dl>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -46,33 +57,41 @@
   <div class="wrap narrow beta-doc">
 
     <h2>What the installer adds</h2>
-    <p class="body">Choose <b>Customize</b> on the Installation Type step to install only some of these.</p>
     <ul class="beta-list">
-      <li><b>2ndPressing app</b>, in Applications. Play a turntable through any audio interface and hear it cleaned live, no DAW needed.</li>
-      <li><b>Audio Unit</b>, for Logic Pro, GarageBand and other AU hosts. It installs the CLAP plugin too, which it loads.</li>
+      <li><b>2ndPressing app.</b> Play a turntable through any audio interface and hear it cleaned live, no DAW needed.</li>
+      <li><b>Audio Unit</b> (Mac only), for Logic Pro, GarageBand and other AU hosts. It installs the CLAP plugin too, which it loads.</li>
       <li><b>VST3</b> and <b>CLAP</b> plugins, for other DAWs.</li>
     </ul>
+    <p class="body">On the Mac, choose <b>Customize</b> on the Installation Type step to pick only some of these; on Windows, untick what you don’t need on the Choose Components page.</p>
 
-    <h2>Install</h2>
+    <h2>Install on a Mac</h2>
     <ol class="beta-list">
-      <li>Open the downloaded <code>2ndPressing-0.1.1.pkg</code> and follow the installer. It asks for your Mac password because plugins go into the shared Library folder.</li>
+      <li>Open <code>2ndPressing-0.1.1.pkg</code> and follow the installer. It asks for your Mac password because plugins go into the shared Library folder.</li>
       <li><b>App:</b> open 2ndPressing from Applications. The first time, macOS asks whether it may use the microphone. Allow it, or the app can’t hear your audio interface.</li>
       <li><b>Plugins:</b> restart your DAW. In Logic Pro the plugin is under <i>Audio Units › 2ndPressing › 2ndPressing Declicker</i>.</li>
     </ol>
+
+    <h2>Install on Windows</h2>
+    <ol class="beta-list">
+      <li>Open <code>2ndPressing-0.1.1-windows-x64-setup.exe</code>. The installer isn’t code-signed yet, so Windows shows <i>“Windows protected your PC”</i>: click <b>More info</b>, then <b>Run anyway</b>. Approve the administrator prompt.</li>
+      <li><b>App:</b> open 2ndPressing from the Start menu. If Windows asks about microphone access, allow it.</li>
+      <li><b>Plugins:</b> restart your DAW and rescan plugins if it doesn’t find them. They are in <i>Common Files\VST3</i> and <i>Common Files\CLAP</i>.</li>
+    </ol>
+    <p class="body"><b>Windows testers wanted.</b> This is the first Windows build and it has had very little testing on real PCs, so any report, even “it installed and worked”, helps.</p>
 
     <h2>Good to know in this beta</h2>
     <ul class="beta-list">
       <li><b>Delay.</b> Percussion protection is set to Extended, which looks about 2 seconds ahead, so you hear the music 2 s late. DAWs compensate automatically. For live listening in the app, press <b>Off</b> for a 32 ms delay.</li>
       <li><b>Sample rates.</b> 44.1 and 48 kHz are the tested rates. Higher rates work but are experimental.</li>
       <li><b>In the app,</b> pick your audio interface and the channel pair your turntable is on in the Audio strip under the controls. The status line says what’s wrong if no sound arrives.</li>
-      <li><b>Mac only for now.</b> Windows is next.</li>
     </ul>
 
     <h2>Feedback</h2>
-    <p class="body">Write to <a href="mailto:hello@secondpressing.com?subject=2ndPressing%20beta%200.1.1">hello@secondpressing.com</a>. Most useful: your Mac model and macOS version, your audio interface and DAW, what you did and what happened. A short clip of a record where it did well or badly is gold.</p>
+    <p class="body">Write to <a href="mailto:hello@secondpressing.com?subject=2ndPressing%20beta%200.1.1">hello@secondpressing.com</a>. Most useful: your computer and system version, your audio interface and DAW, what you did and what happened. A short clip of a record where it did well or badly is gold.</p>
 
     <h2>Uninstall</h2>
-    <p class="body">Delete these, then restart your DAW:</p>
+    <p class="body"><b>Windows:</b> Settings › Apps › 2ndPressing Declicker › Uninstall. It removes the app and both plugins.</p>
+    <p class="body"><b>Mac:</b> delete these, then restart your DAW:</p>
     <ul class="beta-list mono-list">
       <li>/Applications/2ndPressing.app</li>
       <li>/Library/Audio/Plug-Ins/Components/2ndPressing Declicker.component</li>
@@ -82,9 +101,12 @@
     </ul>
 
     <h2>Check the download</h2>
-    <p class="body">SHA-256 of <code>2ndPressing-0.1.1.pkg</code>:</p>
+    <p class="body">SHA-256 of <code>2ndPressing-0.1.1.pkg</code> (Mac):</p>
     <p class="checksum">6b6d7ac61f4c3b42907d9d8a8c209355bd87e7414ca9a886d81192113cf26ab7</p>
-    <p class="small">In Terminal: <code>shasum -a 256 ~/Downloads/2ndPressing-0.1.1.pkg</code></p>
+    <p class="body">SHA-256 of <code>2ndPressing-0.1.1-windows-x64-setup.exe</code> (Windows):</p>
+    <p class="checksum">7dd4328d8e2b778141ee6bfaf202ca2c9bc813838630ca18ca485b05b58d4d61</p>
+    <p class="small">Mac Terminal: <code>shasum -a 256 ~/Downloads/2ndPressing-0.1.1.pkg</code><br>
+    Windows PowerShell: <code>Get-FileHash $HOME\Downloads\2ndPressing-0.1.1-windows-x64-setup.exe</code></p>
   </div>
 </section>
 

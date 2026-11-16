@@ -424,3 +424,8 @@ h1 { font-size: clamp(46px, 6.4vw, 82px); line-height: .98; letter-spacing: -.01
 .mono-list li { overflow-wrap: anywhere; }
 .beta-doc code { font: 400 .92em var(--mono); background: #E4DFD4; padding: 1px 5px; border-radius: 3px; }
 .checksum { font: 400 13px/1.5 var(--mono); background: var(--paper); border: 1px solid var(--paper-edge); border-radius: 4px; padding: 10px 14px; overflow-wrap: anywhere; margin-top: 12px; max-width: 64ch; }
+.beta-card { max-width: 820px; }
+.platforms-dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; width: 100%; margin-top: 6px; }
+.dl { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.dl .beta-facts dd { overflow-wrap: anywhere; }
+@media (max-width: 720px) { .platforms-dl { grid-template-columns: minmax(0, 1fr); } }
