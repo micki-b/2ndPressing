@@ -123,6 +123,12 @@ def main():
         subprocess.run(["iconutil", "-c", "icns", str(iset), "-o", str(OUT / "AppIcon.icns")], check=True)
     shutil.copy(OUT / "AppIcon.icns", APP / "macos" / "AppIcon.icns")
 
+    # 2b. Windows .ico (installer, shortcuts, Settings > Apps).
+    ico = ROOT / "runtime" / "release" / "windows" / "2ndPressing.ico"
+    ico.parent.mkdir(parents=True, exist_ok=True)
+    appimg.save(ico, sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+    shutil.copy(ico, OUT / "2ndPressing.ico")
+
     # 3. Website (icons only; the large logo is not used on the site).
     (WEB / "header-icon.svg").write_text(plain)
     (WEB / "favicon.svg").write_text(app_icon(icon))

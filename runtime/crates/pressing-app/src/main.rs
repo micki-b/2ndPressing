@@ -9,14 +9,39 @@
 //! - `2ndpressing --check "INPUT" "OUTPUT" [SECONDS] [RATE]`: run the whole
 //!   path (input -> declicker, protection Off -> output, channels 1-2) and
 //!   print the counters.
+//!
+//! On Windows the app is a windowed program (no console window behind it);
+//! the diagnostics attach to the console they were started from.
+
+#![cfg_attr(windows, windows_subsystem = "windows")]
 
 mod audio;
 mod resample;
 mod settings;
 mod ui;
 
+/// Windows: a windowed program has no console, so print diagnostics to the
+/// console of the shell that started it (Command Prompt / PowerShell).
+#[cfg(windows)]
+fn attach_parent_console() {
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn AttachConsole(process_id: u32) -> i32;
+    }
+    const ATTACH_PARENT_PROCESS: u32 = u32::MAX;
+    // SAFETY: plain Win32 call with a constant argument; failure (no parent
+    // console) is harmless and ignored.
+    unsafe {
+        AttachConsole(ATTACH_PARENT_PROCESS);
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    #[cfg(windows)]
+    if !args.is_empty() {
+        attach_parent_console();
+    }
     match args.first().map(String::as_str) {
         Some("--list") => {
             let (ins, outs) = audio::scan();

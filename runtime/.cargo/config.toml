@@ -1,2 +1,9 @@
 [alias]
 xtask = "run --package xtask --release --"
+
+# Windows: link the C runtime statically, so the plugin and app don't need
+# Microsoft's VC++ redistributable (VCRUNTIME140.dll) on the user's PC.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

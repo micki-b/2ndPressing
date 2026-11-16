@@ -211,6 +211,42 @@ password from account.apple.com):
 xcrun notarytool store-credentials 2ndPressing-notary --apple-id ... --team-id ... --password ...
 ```
 
+## Windows release (installer, built on macOS)
+
+`release/windows/build-release.sh` cross-compiles the plugin and the app for
+64-bit Windows with `cargo-xwin`, then packages them with NSIS
+(`release/windows/installer.nsi`):
+
+```sh
+XWIN_ACCEPT_LICENSE=1 release/windows/build-release.sh
+# -> target/release-windows/2ndPressing-<version>-windows-x64-setup.exe
+```
+
+The installer has three components:
+
+| Component | Installs to |
+|---|---|
+| App | `C:\Program Files\2ndPressing\2ndPressing.exe`, with a Start-menu shortcut |
+| VST3 | `C:\Program Files\Common Files\VST3\2ndPressing Declicker.vst3\` |
+| CLAP | `C:\Program Files\Common Files\CLAP\2ndPressing Declicker.clap` |
+
+It also registers an uninstaller under Settings › Apps.
+
+One-time setup:
+- `rustup target add x86_64-pc-windows-msvc`
+- `cargo install --locked cargo-xwin`
+- `brew install llvm lld makensis`
+
+`XWIN_ACCEPT_LICENSE=1` accepts Microsoft's licence for the CRT and Windows
+SDK that `cargo-xwin` downloads.
+
+Notes:
+- The C runtime is linked statically (`.cargo/config.toml`), so nothing needs
+  the VC++ redistributable.
+- The app is a windowed program. Its `--list`, `--probe` and `--check`
+  diagnostics print to the console they were started from.
+- The installer is not code-signed yet, so SmartScreen warns until it is.
+
 ## Audio Unit (Logic Pro, GarageBand, other AU hosts)
 
 Logic only loads Audio Units, so `au/` builds an AUv2 wrapper with
