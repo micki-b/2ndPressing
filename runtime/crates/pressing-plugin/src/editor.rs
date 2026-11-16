@@ -972,12 +972,15 @@ impl Faceplate {
     }
 
     fn keys(&self, ui: &mut egui::Ui, pt: &egui::Painter, c: &dyn Controls) {
-        // Keys sit on the two columns above them: Listen and Bypass under
-        // Sensitivity (x 26), Percussion protection under the meter
-        // (x 262..494, three keys filling its 232 px exactly).
+        // Keys sit on the two columns above them: Listen and Bypass span the
+        // Sensitivity display (x 26..226, 200 px); Percussion protection
+        // spans the meter (x 262..494, three keys filling its 232 px).
+        const GAP: f32 = 5.0;
         const KEY_W: f32 = 74.0;
-        const KEY_STEP: f32 = KEY_W + 5.0;
+        const KEY_STEP: f32 = KEY_W + GAP;
         const LEFT: f32 = 26.0;
+        const LEFT_W: f32 = 200.0;
+        const LISTEN_W: f32 = (LEFT_W - GAP) / 2.0;
         const RIGHT: f32 = 262.0;
 
         pt.text(
@@ -995,14 +998,14 @@ impl Faceplate {
         .into_iter()
         .enumerate()
         {
-            let r = self.r(LEFT + i as f32 * KEY_STEP, 320.0, KEY_W, 46.0);
+            let r = self.r(LEFT + i as f32 * (LISTEN_W + GAP), 320.0, LISTEN_W, 46.0);
             if self.key(ui, pt, label, r, label, sub, mon == mode, AMBER) && mon != mode {
                 c.set_monitor(mode);
             }
         }
 
         let bypassed = c.bypass();
-        let r = self.r(LEFT, 376.0, KEY_STEP + KEY_W, 40.0);
+        let r = self.r(LEFT, 376.0, LEFT_W, 40.0);
         if self.key(ui, pt, "BYPASS", r, "BYPASS", "", bypassed, RED) {
             c.set_bypass(!bypassed);
         }
