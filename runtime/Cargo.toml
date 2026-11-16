@@ -1,6 +1,12 @@
 [workspace]
 resolver = "2"
-members = ["crates/pressing-core", "crates/pressing-cli", "crates/pressing-plugin", "xtask"]
+members = [
+    "crates/pressing-core",
+    "crates/pressing-cli",
+    "crates/pressing-plugin",
+    "crates/pressing-app",
+    "xtask",
+]
 
 [workspace.package]
 version = "0.1.0"

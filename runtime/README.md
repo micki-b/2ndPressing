@@ -8,7 +8,8 @@ The spec is `docs/runtime-v1.md`.
 |---|---|
 | `pressing-core` | Model loading (R2 embedded with `include_bytes!`), features, streaming network, region finder, LSAR, `Declicker` engine. Depends only on `serde`/`serde_json`. No allocation in `process`. |
 | `pressing-cli` | `pressing` binary: `declick`, `bench`, `parity` |
-| `pressing-plugin` | nih-plug VST3 + CLAP plugin; optional standalone app (`--features standalone`) |
+| `pressing-plugin` | nih-plug VST3 + CLAP plugin (its faceplate and real-time `Dsp` are shared with the app); nih-plug's generic standalone (`--features standalone`) |
+| `pressing-app` | The desktop app `2ndPressing.app`: live input to output with the plugin's faceplate, any device at its native channel count |
 | `xtask` | `cargo xtask bundle pressing-plugin --release` |
 
 ## Build
@@ -19,7 +20,8 @@ Requires Rust 1.88 or newer (`rust-version` in `Cargo.toml`). Measured with 1.10
 cd runtime
 cargo build --release                      # core + CLI + plugin library
 cargo xtask bundle pressing-plugin --release   # VST3 + CLAP bundles in target/bundled/
-cargo build -p pressing-plugin --release --features standalone   # target/release/pressing-standalone
+crates/pressing-app/macos/bundle.sh       # macOS app: target/release/2ndPressing.app
+cargo build -p pressing-app --release      # the app binary alone: target/release/2ndpressing
 ```
 
 On Linux the standalone app (but not the VST3/CLAP bundle) needs the ALSA and
@@ -129,6 +131,48 @@ code changes needed. Keep its `##`/`###` headings and pipe tables; `**bold**`
 and footnote markers like `[1]` are supported, a table headed `Lamp` draws
 status lamps and one headed `Background loudness` draws paired bars.
 
+## Desktop app
+
+`2ndPressing.app` plays an input device through the declicker to an output
+device live, using the plugin's Instrument faceplate (same controls, meter
+and info screen). Under the faceplate, an **Audio** strip has these controls:
+
+- **Input** and **output** device menus. Devices open at their native channel
+  count, so a 6-channel interface in multitrack mode or a 6-channel USB
+  speaker works.
+- **Channel-pair** menus: `1–2`, `3–4`, … or any single channel as mono.
+- **Rate** menu: the processing rate, which is the input device's rate. 44.1
+  and 48 kHz are native.
+- **Input level** readout.
+- A **status line**. Hover over it for details; click it to retry after an
+  error. It shows:
+  - `RUNNING · 48.0 kHz · BIT-EXACT` when input and output are one device at
+    one rate. The output samples are the engine's samples, unaltered.
+  - `CLOCK-MATCHED` or `44.1 → 48.0 kHz` when two devices are involved. The
+    output is rate-matched by a 4-point Hermite resampler whose step is
+    trimmed by at most ±1000 ppm to hold the hand-off buffer steady.
+  - `NO AUDIO FROM <device>` when the input opened but never delivers.
+    Another app holds the device, or audio input is blocked in System
+    Settings › Privacy & Security › Microphone.
+  - `INPUT IS DIGITAL SILENCE` when callbacks arrive with exact zeros. This
+    points to the wrong channel pair or a denied permission.
+
+Choices, sensitivity, protection and listen mode are saved to
+`~/Library/Application Support/2ndPressing/app.json` (Windows:
+`%APPDATA%\2ndPressing`, Linux: `~/.config/2ndPressing`).
+
+Command-line diagnostics, with no window:
+
+```sh
+2ndpressing --list                               # devices, native channels, rates
+2ndpressing --probe "H6" 3                       # open an input for 3 s: callbacks, peak
+2ndpressing --check "H6" "Bose USB Audio" 6      # full path for 6 s (protection Off, channels 1–2)
+```
+
+The app replaces nih-plug's generic standalone (`pressing-standalone`). That
+standalone only opens devices with exactly 2 channels, and it halts silently
+when the input never starts.
+
 ## Audio Unit (Logic Pro, GarageBand, other AU hosts)
 
 Logic only loads Audio Units, so `au/` builds an AUv2 wrapper with
@@ -196,6 +240,10 @@ using `pressing bench` (20 s of synthetic stereo, block 512):
 - **CLI memory.** The CLI decodes the whole file into memory. A 25-minute side at
   96 kHz stereo needs roughly 2.3 GB.
 - **CLI pipes.** Piping `pressing` output into `head` ends with a broken-pipe panic.
+- **Desktop app.** It is signed ad hoc, so macOS may ask for microphone access
+  again after each rebuild. It has no app icon yet. Only the macOS build has been
+  run so far; it uses cpal, so Windows (WASAPI) and Linux (ALSA) should build, but
+  that is untested.
 - **AAC edit lists.** Only single-edit lists are applied; other edit-list layouts
   are ignored with a warning.
 - **Percussion protection.** Only the rhythm (beat-grid) cue is used. Percussion

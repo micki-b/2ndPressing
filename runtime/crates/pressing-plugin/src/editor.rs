@@ -39,45 +39,45 @@ pub const HEIGHT: u32 = 470;
 
 // ---- Palette (direction B) ----
 
-const PANEL_TOP: Color32 = Color32::from_rgb(0xD4, 0xCF, 0xC3);
-const PANEL_BOT: Color32 = Color32::from_rgb(0xC6, 0xC0, 0xB2);
-const BAND: Color32 = Color32::from_rgb(0x3C, 0x3A, 0x36);
-const BAND_TEXT: Color32 = Color32::from_rgb(0xEB, 0xE6, 0xDA);
-const BAND_DIM: Color32 = Color32::from_rgb(0xA9, 0xA3, 0x95);
-const LEGEND: Color32 = Color32::from_rgb(0x3C, 0x3A, 0x36);
-const GLASS_TOP: Color32 = Color32::from_rgb(0x1B, 0x1A, 0x17);
-const GLASS_BOT: Color32 = Color32::from_rgb(0x26, 0x24, 0x1F);
-const AMBER: Color32 = Color32::from_rgb(0xF2, 0xA9, 0x3B);
-const AMBER_DIM: Color32 = Color32::from_rgb(0xC9, 0x8A, 0x2E);
-const AMBER_FAINT: Color32 = Color32::from_rgb(0x8C, 0x75, 0x47);
-const KEY_TOP: Color32 = Color32::from_rgb(0xEC, 0xE8, 0xDE);
-const KEY_BOT: Color32 = Color32::from_rgb(0xCF, 0xC9, 0xBB);
-const KEY_ON_TOP: Color32 = Color32::from_rgb(0xD9, 0xD4, 0xC7);
-const KEY_ON_BOT: Color32 = Color32::from_rgb(0xBD, 0xB6, 0xA6);
-const KEY_EDGE: Color32 = Color32::from_rgb(0x8C, 0x85, 0x77);
-const KEY_TEXT: Color32 = Color32::from_rgb(0x2C, 0x2A, 0x26);
-const KEY_SUB: Color32 = Color32::from_rgb(0x6A, 0x64, 0x55);
-const LAMP_OFF: Color32 = Color32::from_rgb(0x6D, 0x65, 0x53);
-const RED: Color32 = Color32::from_rgb(0xE2, 0x55, 0x3F);
-const GREEN: Color32 = Color32::from_rgb(0x7E, 0xC2, 0x7A);
-const LED_OFF: Color32 = Color32::from_rgb(0x4A, 0x46, 0x3D);
-const PAPER: Color32 = Color32::from_rgb(0xF4, 0xEC, 0xD4);
-const PAPER_EDGE: Color32 = Color32::from_rgb(0xA8, 0x9F, 0x8A);
-const GRID: Color32 = Color32::from_rgb(0xC9, 0xB9, 0x8F);
-const INK: Color32 = Color32::from_rgb(0x2F, 0x3B, 0x6B);
-const PAPER_LABEL: Color32 = Color32::from_rgb(0x8A, 0x7A, 0x52);
-const FOOT: Color32 = Color32::from_rgb(0xBD, 0xB6, 0xA7);
-const KNOB_EDGE: Color32 = Color32::from_rgb(0x34, 0x32, 0x2F);
-const KNOB_MID: Color32 = Color32::from_rgb(0x4B, 0x49, 0x45);
-const KNOB_HI: Color32 = Color32::from_rgb(0x7D, 0x7A, 0x73);
-const KNOB_CAP: Color32 = Color32::from_rgb(0x55, 0x53, 0x4E);
-const KNOB_LINE: Color32 = Color32::from_rgb(0xF0, 0xEB, 0xDF);
+pub const PANEL_TOP: Color32 = Color32::from_rgb(0xD4, 0xCF, 0xC3);
+pub const PANEL_BOT: Color32 = Color32::from_rgb(0xC6, 0xC0, 0xB2);
+pub const BAND: Color32 = Color32::from_rgb(0x3C, 0x3A, 0x36);
+pub const BAND_TEXT: Color32 = Color32::from_rgb(0xEB, 0xE6, 0xDA);
+pub const BAND_DIM: Color32 = Color32::from_rgb(0xA9, 0xA3, 0x95);
+pub const LEGEND: Color32 = Color32::from_rgb(0x3C, 0x3A, 0x36);
+pub const GLASS_TOP: Color32 = Color32::from_rgb(0x1B, 0x1A, 0x17);
+pub const GLASS_BOT: Color32 = Color32::from_rgb(0x26, 0x24, 0x1F);
+pub const AMBER: Color32 = Color32::from_rgb(0xF2, 0xA9, 0x3B);
+pub const AMBER_DIM: Color32 = Color32::from_rgb(0xC9, 0x8A, 0x2E);
+pub const AMBER_FAINT: Color32 = Color32::from_rgb(0x8C, 0x75, 0x47);
+pub const KEY_TOP: Color32 = Color32::from_rgb(0xEC, 0xE8, 0xDE);
+pub const KEY_BOT: Color32 = Color32::from_rgb(0xCF, 0xC9, 0xBB);
+pub const KEY_ON_TOP: Color32 = Color32::from_rgb(0xD9, 0xD4, 0xC7);
+pub const KEY_ON_BOT: Color32 = Color32::from_rgb(0xBD, 0xB6, 0xA6);
+pub const KEY_EDGE: Color32 = Color32::from_rgb(0x8C, 0x85, 0x77);
+pub const KEY_TEXT: Color32 = Color32::from_rgb(0x2C, 0x2A, 0x26);
+pub const KEY_SUB: Color32 = Color32::from_rgb(0x6A, 0x64, 0x55);
+pub const LAMP_OFF: Color32 = Color32::from_rgb(0x6D, 0x65, 0x53);
+pub const RED: Color32 = Color32::from_rgb(0xE2, 0x55, 0x3F);
+pub const GREEN: Color32 = Color32::from_rgb(0x7E, 0xC2, 0x7A);
+pub const LED_OFF: Color32 = Color32::from_rgb(0x4A, 0x46, 0x3D);
+pub const PAPER: Color32 = Color32::from_rgb(0xF4, 0xEC, 0xD4);
+pub const PAPER_EDGE: Color32 = Color32::from_rgb(0xA8, 0x9F, 0x8A);
+pub const GRID: Color32 = Color32::from_rgb(0xC9, 0xB9, 0x8F);
+pub const INK: Color32 = Color32::from_rgb(0x2F, 0x3B, 0x6B);
+pub const PAPER_LABEL: Color32 = Color32::from_rgb(0x8A, 0x7A, 0x52);
+pub const FOOT: Color32 = Color32::from_rgb(0xBD, 0xB6, 0xA7);
+pub const KNOB_EDGE: Color32 = Color32::from_rgb(0x34, 0x32, 0x2F);
+pub const KNOB_MID: Color32 = Color32::from_rgb(0x4B, 0x49, 0x45);
+pub const KNOB_HI: Color32 = Color32::from_rgb(0x7D, 0x7A, 0x73);
+pub const KNOB_CAP: Color32 = Color32::from_rgb(0x55, 0x53, 0x4E);
+pub const KNOB_LINE: Color32 = Color32::from_rgb(0xF0, 0xEB, 0xDF);
 
-const COND: &str = "plex-cond";
-const MONO: &str = "plex-mono";
-const MONO_M: &str = "plex-mono-medium";
-const SANS: &str = "plex-sans";
-const SANS_B: &str = "plex-sans-semibold";
+pub const COND: &str = "plex-cond";
+pub const MONO: &str = "plex-mono";
+pub const MONO_M: &str = "plex-mono-medium";
+pub const SANS: &str = "plex-sans";
+pub const SANS_B: &str = "plex-sans-semibold";
 
 // ---- Shared numbers ----
 
@@ -204,7 +204,94 @@ pub fn meter_zone(rate: f64) -> (Color32, &'static str) {
     }
 }
 
+// ---- Controls ----
+
+/// What the faceplate reads and changes. The plugin implements it on top of
+/// nih-plug's parameters (so hosts see gestures and automation); the
+/// standalone app implements it on its own shared atomics.
+pub trait Controls {
+    /// Sensitivity in percent (0..=100).
+    fn sensitivity(&self) -> f32;
+    /// Start of a sensitivity gesture (knob drag).
+    fn begin_sensitivity(&self) {}
+    fn set_sensitivity(&self, percent: f32);
+    /// End of a sensitivity gesture.
+    fn end_sensitivity(&self) {}
+    fn protection(&self) -> PercussionProtection;
+    fn set_protection(&self, p: PercussionProtection);
+    fn monitor(&self) -> Monitor;
+    fn set_monitor(&self, m: Monitor);
+    fn bypass(&self) -> bool;
+    fn set_bypass(&self, on: bool);
+}
+
+/// [`Controls`] on the plugin's parameters.
+struct HostControls<'a> {
+    setter: &'a ParamSetter<'a>,
+    params: &'a PressingParams,
+}
+
+impl Controls for HostControls<'_> {
+    fn sensitivity(&self) -> f32 {
+        self.params.sensitivity.value()
+    }
+    fn begin_sensitivity(&self) {
+        self.setter.begin_set_parameter(&self.params.sensitivity);
+    }
+    fn set_sensitivity(&self, percent: f32) {
+        self.setter.set_parameter(&self.params.sensitivity, percent);
+    }
+    fn end_sensitivity(&self) {
+        self.setter.end_set_parameter(&self.params.sensitivity);
+    }
+    fn protection(&self) -> PercussionProtection {
+        self.params.protection.value()
+    }
+    fn set_protection(&self, p: PercussionProtection) {
+        self.setter.begin_set_parameter(&self.params.protection);
+        self.setter.set_parameter(&self.params.protection, p);
+        self.setter.end_set_parameter(&self.params.protection);
+    }
+    fn monitor(&self) -> Monitor {
+        self.params.monitor.value()
+    }
+    fn set_monitor(&self, m: Monitor) {
+        self.setter.begin_set_parameter(&self.params.monitor);
+        self.setter.set_parameter(&self.params.monitor, m);
+        self.setter.end_set_parameter(&self.params.monitor);
+    }
+    fn bypass(&self) -> bool {
+        self.params.bypass.value()
+    }
+    fn set_bypass(&self, on: bool) {
+        self.setter.begin_set_parameter(&self.params.bypass);
+        self.setter.set_parameter(&self.params.bypass, on);
+        self.setter.end_set_parameter(&self.params.bypass);
+    }
+}
+
 // ---- Editor ----
+
+/// The faceplate with its GUI-thread state, drawn at the top-left of the
+/// `Ui` it is shown in ([`WIDTH`] x [`HEIGHT`]).
+pub struct Panel {
+    st: EditorState,
+    model_threshold: f32,
+}
+
+impl Panel {
+    pub fn new(model_threshold: f32) -> Self {
+        Panel {
+            st: EditorState::default(),
+            model_threshold,
+        }
+    }
+
+    /// Draw the faceplate (controls or info page) and handle its input.
+    pub fn show(&mut self, ui: &mut egui::Ui, controls: &dyn Controls, stats: &UiStats) {
+        Faceplate::new(ui).draw(ui, controls, stats, &mut self.st, self.model_threshold);
+    }
+}
 
 /// GUI-thread state: the meter and the knob gesture.
 #[derive(Default)]
@@ -225,7 +312,8 @@ pub fn default_state() -> Arc<EguiState> {
     EguiState::from_size(WIDTH, HEIGHT)
 }
 
-fn fonts() -> FontDefinitions {
+/// The embedded IBM Plex fonts, with egui's own fonts as fallback.
+pub fn fonts() -> FontDefinitions {
     let mut f = FontDefinitions::default();
     for (name, bytes) in [
         (
@@ -273,13 +361,17 @@ pub fn create(
     let state = params.editor_state.clone();
     create_egui_editor(
         state,
-        EditorState::default(),
+        Panel::new(model_threshold),
         |ctx, _| ctx.set_fonts(fonts()),
-        move |ctx, setter, st| {
+        move |ctx, setter, panel| {
             egui::CentralPanel::default()
                 .frame(egui::Frame::NONE)
                 .show(ctx, |ui| {
-                    Faceplate::new(ui).draw(ui, setter, &params, &stats, st, model_threshold);
+                    let controls = HostControls {
+                        setter,
+                        params: &params,
+                    };
+                    panel.show(ui, &controls, &stats);
                 });
             // Keep readouts live (cheap: a small repaint every 250 ms).
             ctx.request_repaint_after(std::time::Duration::from_millis(250));
@@ -287,7 +379,8 @@ pub fn create(
     )
 }
 
-fn font(family: &str, size: f32) -> FontId {
+/// A font from the embedded set ([`COND`], [`MONO`], [`MONO_M`], [`SANS`], [`SANS_B`]).
+pub fn font(family: &str, size: f32) -> FontId {
     FontId::new(size, FontFamily::Name(family.into()))
 }
 
@@ -317,7 +410,7 @@ pub fn brand(p: &egui::Painter, left_bottom: Pos2, size: f32, color: Color32) ->
 }
 
 /// Vertical gradient rectangle.
-fn vgrad(p: &egui::Painter, r: Rect, top: Color32, bot: Color32) {
+pub fn vgrad(p: &egui::Painter, r: Rect, top: Color32, bot: Color32) {
     let mut m = Mesh::default();
     m.colored_vertex(r.left_top(), top);
     m.colored_vertex(r.right_top(), top);
@@ -354,8 +447,7 @@ impl Faceplate {
     fn draw(
         &self,
         ui: &mut egui::Ui,
-        setter: &ParamSetter,
-        params: &PressingParams,
+        c: &dyn Controls,
         stats: &UiStats,
         st: &mut EditorState,
         model_threshold: f32,
@@ -400,9 +492,9 @@ impl Faceplate {
             st.info = true;
         }
 
-        self.sensitivity(ui, pt, setter, params, st, model_threshold);
+        self.sensitivity(ui, pt, c, st, model_threshold);
         self.meter(pt, &st.meter, sr);
-        self.keys(ui, pt, setter, params);
+        self.keys(ui, pt, c);
         self.status(pt, stats, sr);
     }
 
@@ -581,13 +673,11 @@ impl Faceplate {
         &self,
         ui: &mut egui::Ui,
         pt: &egui::Painter,
-        setter: &ParamSetter,
-        params: &PressingParams,
+        c: &dyn Controls,
         st: &mut EditorState,
         model_threshold: f32,
     ) {
-        let param = &params.sensitivity;
-        let value = param.value();
+        let value = c.sensitivity();
         pt.text(
             self.p(26.0, 72.0),
             Align2::LEFT_TOP,
@@ -621,7 +711,7 @@ impl Faceplate {
         );
 
         // Scale: 21 detents over 270 degrees, numbers every 25 %.
-        let c = self.p(126.0, 224.0);
+        let ctr = self.p(126.0, 224.0);
         let dir = |deg: f32| {
             let a = (deg - 90.0).to_radians();
             Vec2::new(a.cos(), a.sin())
@@ -631,12 +721,12 @@ impl Faceplate {
             let major = i % 5 == 0;
             let (r1, r2) = (46.0, if major { 55.0 } else { 51.0 });
             pt.line_segment(
-                [c + dir(deg) * r1, c + dir(deg) * r2],
+                [ctr + dir(deg) * r1, ctr + dir(deg) * r2],
                 Stroke::new(if major { 1.3_f32 } else { 0.8 }, LEGEND),
             );
             if major {
                 pt.text(
-                    c + dir(deg) * 66.0,
+                    ctr + dir(deg) * 66.0,
                     Align2::CENTER_CENTER,
                     format!("{}", i * 5),
                     font(MONO, 8.5),
@@ -645,25 +735,25 @@ impl Faceplate {
             }
         }
         // Knob: shadow, shaded body, cap, pointer.
-        pt.circle_filled(c + Vec2::new(2.0, 3.0), 40.0, Color32::from_black_alpha(70));
-        pt.circle_filled(c, 40.0, KNOB_EDGE);
+        pt.circle_filled(ctr + Vec2::new(2.0, 3.0), 40.0, Color32::from_black_alpha(70));
+        pt.circle_filled(ctr, 40.0, KNOB_EDGE);
         for k in 0..10 {
             let t = k as f32 / 9.0;
             let col = lerp(KNOB_MID, KNOB_HI, t * 0.8);
-            pt.circle_filled(c + Vec2::new(-5.0, -7.0) * t, 38.0 * (1.0 - t * 0.55), col);
+            pt.circle_filled(ctr + Vec2::new(-5.0, -7.0) * t, 38.0 * (1.0 - t * 0.55), col);
         }
-        pt.circle_filled(c, 30.0, KNOB_CAP);
-        pt.circle_stroke(c, 30.0, Stroke::new(1.0_f32, KNOB_EDGE));
+        pt.circle_filled(ctr, 30.0, KNOB_CAP);
+        pt.circle_stroke(ctr, 30.0, Stroke::new(1.0_f32, KNOB_EDGE));
         let deg = -135.0 + 270.0 * (value / 100.0);
         pt.line_segment(
-            [c + dir(deg) * 13.0, c + dir(deg) * 27.0],
+            [ctr + dir(deg) * 13.0, ctr + dir(deg) * 27.0],
             Stroke::new(2.6_f32, KNOB_LINE),
         );
 
         // Interaction: vertical drag (0.4 %/px), scroll, double-click reset.
         let resp = ui
             .interact(
-                Rect::from_center_size(c, Vec2::splat(84.0)),
+                Rect::from_center_size(ctr, Vec2::splat(84.0)),
                 ui.id().with("sens"),
                 Sense::click_and_drag(),
             )
@@ -672,23 +762,23 @@ impl Faceplate {
         if resp.drag_started() {
             st.drag_start = value;
             st.drag_px = 0.0;
-            setter.begin_set_parameter(param);
+            c.begin_sensitivity();
         }
         if resp.dragged() {
             st.drag_px += resp.drag_delta().y;
             let v = snap(st.drag_start - st.drag_px * 0.4);
             if v != value {
-                setter.set_parameter(param, v);
+                c.set_sensitivity(v);
             }
         }
         if resp.drag_stopped() {
-            setter.end_set_parameter(param);
+            c.end_sensitivity();
         }
         if resp.double_clicked() {
             // Double-click returns to 50 % (the model's tuned threshold).
-            setter.begin_set_parameter(param);
-            setter.set_parameter(param, KNOB_RESET);
-            setter.end_set_parameter(param);
+            c.begin_sensitivity();
+            c.set_sensitivity(KNOB_RESET);
+            c.end_sensitivity();
         }
         if resp.hovered() {
             st.scroll_px += ui.input(|i| i.smooth_scroll_delta.y);
@@ -696,9 +786,9 @@ impl Faceplate {
                 let v = snap(value + 5.0 * st.scroll_px.signum());
                 st.scroll_px = 0.0;
                 if v != value {
-                    setter.begin_set_parameter(param);
-                    setter.set_parameter(param, v);
-                    setter.end_set_parameter(param);
+                    c.begin_sensitivity();
+                    c.set_sensitivity(v);
+                    c.end_sensitivity();
                 }
             }
         }
@@ -880,13 +970,7 @@ impl Faceplate {
         resp.clicked()
     }
 
-    fn keys(
-        &self,
-        ui: &mut egui::Ui,
-        pt: &egui::Painter,
-        setter: &ParamSetter,
-        params: &PressingParams,
-    ) {
+    fn keys(&self, ui: &mut egui::Ui, pt: &egui::Painter, c: &dyn Controls) {
         pt.text(
             self.p(26.0, 302.0),
             Align2::LEFT_TOP,
@@ -894,7 +978,7 @@ impl Faceplate {
             font(COND, 10.0),
             LEGEND,
         );
-        let prot = params.protection.value();
+        let prot = c.protection();
         for (i, (mode, label, sub)) in [
             (PercussionProtection::Off, "OFF", "32 ms"),
             (PercussionProtection::Standard, "STANDARD", "≈ 1 s"),
@@ -905,9 +989,7 @@ impl Faceplate {
         {
             let r = self.r(26.0 + i as f32 * 84.0, 320.0, 78.0, 46.0);
             if self.key(ui, pt, label, r, label, sub, prot == mode, AMBER) && prot != mode {
-                setter.begin_set_parameter(&params.protection);
-                setter.set_parameter(&params.protection, mode);
-                setter.end_set_parameter(&params.protection);
+                c.set_protection(mode);
             }
         }
 
@@ -918,7 +1000,7 @@ impl Faceplate {
             font(COND, 10.0),
             LEGEND,
         );
-        let mon = params.monitor.value();
+        let mon = c.monitor();
         for (i, (mode, label, sub)) in [
             (Monitor::Declick, "REPAIRED", "audio"),
             (Monitor::ClicksOnly, "CLICKS", "only"),
@@ -928,18 +1010,14 @@ impl Faceplate {
         {
             let r = self.r(300.0 + i as f32 * 84.0, 320.0, 78.0, 46.0);
             if self.key(ui, pt, label, r, label, sub, mon == mode, AMBER) && mon != mode {
-                setter.begin_set_parameter(&params.monitor);
-                setter.set_parameter(&params.monitor, mode);
-                setter.end_set_parameter(&params.monitor);
+                c.set_monitor(mode);
             }
         }
 
-        let bypassed = params.bypass.value();
+        let bypassed = c.bypass();
         let r = self.r(300.0, 376.0, 162.0, 40.0);
         if self.key(ui, pt, "BYPASS", r, "BYPASS", "", bypassed, RED) {
-            setter.begin_set_parameter(&params.bypass);
-            setter.set_parameter(&params.bypass, !bypassed);
-            setter.end_set_parameter(&params.bypass);
+            c.set_bypass(!bypassed);
         }
     }
 
