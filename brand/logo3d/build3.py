@@ -57,7 +57,7 @@ def wm_svg(x, y, s, fill, extra=""):
             f'2<tspan font-size="{round(.6*s,2)}" dy="-{r}">nd</tspan><tspan font-size="{s}" dy="{r}">Pressing</tspan>{extra}</text>')
 
 V2 = dict(target=(1, 9, 12), yaw=32, pitch=20, dist=130)
-hero_a1 = render(FIN_A1, Cam(**V2), uid="h1", focus=66, aspect=1.45, grooves=True)
+hero_a1 = render(FIN_A1, Cam(**V2), uid="h1", focus=66, aspect=1.45, grooves=True, full=True)
 cards = [f'''<article class="card hero-card"><div class="art">{hero_a1}</div>
 <div class="meta"><span class="letter">A1</span><h2>Black cartridge, amber stylus, silver headshell and arm</h2></div></article>''']
 ic_a1 = icon(FIN_A1, "i1")
@@ -132,9 +132,9 @@ h2 {{ font: 600 21px/1.15 var(--display); margin: 0; }}
 </style>
 <div class="wrap">
   <header class="top">
-    <p class="eyebrow">Brand review · round 10 · A1</p>
+    <p class="eyebrow">Approved logo · A1</p>
     <h1>2ndPressing cartridge logo</h1>
-    <p class="intro">A1, view V2: black cartridge with amber stylus on an SL-1200 style silver headshell and arm. The arm now runs almost straight from the collar, the finger lift is a solid bar at 90° off the headshell’s outer side, and the record shows its grooves and the smoother bands between tracks. SL-1200 geometry throughout: 22° offset, 230 mm effective length.</p>
+    <p class="intro">A1, view V2: black cartridge with amber stylus on an SL-1200 style silver headshell and arm. The arm now runs almost straight from the collar, the finger lift is a solid bar at 90° off the headshell’s outer side, and the record fills the whole frame, with its grooves and the smoother bands between tracks. SL-1200 geometry throughout: 22° offset, 230 mm effective length.</p>
   </header>
   <section class="grid">{"".join(cards)}</section>
   {icons}
