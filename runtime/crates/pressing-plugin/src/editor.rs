@@ -8,8 +8,9 @@
 //! - Clicks per minute: amber readout and zone word, a 30-segment LED ladder
 //!   on a log scale (10 / 100 / 1000), and a paper strip chart of the last
 //!   60 s (same scale).
-//! - Latching keys with lamps: Percussion protection (Off / Standard /
-//!   Extended, each with its delay), Listen (Repaired / Clicks), Bypass.
+//! - Latching keys with lamps: Listen (Repaired / Clicks) and Bypass on the
+//!   left under Sensitivity; Percussion protection (Off / Standard /
+//!   Extended, each with its delay) on the right under the meter.
 //! - Status band: latency, sample rate, clicks repaired.
 //!
 //! Live numbers come from [`UiStats`], written by the audio thread with
@@ -971,8 +972,43 @@ impl Faceplate {
     }
 
     fn keys(&self, ui: &mut egui::Ui, pt: &egui::Painter, c: &dyn Controls) {
+        // Keys sit on the two columns above them: Listen and Bypass under
+        // Sensitivity (x 26), Percussion protection under the meter
+        // (x 262..494, three keys filling its 232 px exactly).
+        const KEY_W: f32 = 74.0;
+        const KEY_STEP: f32 = KEY_W + 5.0;
+        const LEFT: f32 = 26.0;
+        const RIGHT: f32 = 262.0;
+
         pt.text(
-            self.p(26.0, 302.0),
+            self.p(LEFT, 302.0),
+            Align2::LEFT_TOP,
+            "LISTEN",
+            font(COND, 10.0),
+            LEGEND,
+        );
+        let mon = c.monitor();
+        for (i, (mode, label, sub)) in [
+            (Monitor::Declick, "REPAIRED", "audio"),
+            (Monitor::ClicksOnly, "CLICKS", "only"),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let r = self.r(LEFT + i as f32 * KEY_STEP, 320.0, KEY_W, 46.0);
+            if self.key(ui, pt, label, r, label, sub, mon == mode, AMBER) && mon != mode {
+                c.set_monitor(mode);
+            }
+        }
+
+        let bypassed = c.bypass();
+        let r = self.r(LEFT, 376.0, KEY_STEP + KEY_W, 40.0);
+        if self.key(ui, pt, "BYPASS", r, "BYPASS", "", bypassed, RED) {
+            c.set_bypass(!bypassed);
+        }
+
+        pt.text(
+            self.p(RIGHT, 302.0),
             Align2::LEFT_TOP,
             "PERCUSSION PROTECTION",
             font(COND, 10.0),
@@ -987,37 +1023,10 @@ impl Faceplate {
         .into_iter()
         .enumerate()
         {
-            let r = self.r(26.0 + i as f32 * 84.0, 320.0, 78.0, 46.0);
+            let r = self.r(RIGHT + i as f32 * KEY_STEP, 320.0, KEY_W, 46.0);
             if self.key(ui, pt, label, r, label, sub, prot == mode, AMBER) && prot != mode {
                 c.set_protection(mode);
             }
-        }
-
-        pt.text(
-            self.p(300.0, 302.0),
-            Align2::LEFT_TOP,
-            "LISTEN",
-            font(COND, 10.0),
-            LEGEND,
-        );
-        let mon = c.monitor();
-        for (i, (mode, label, sub)) in [
-            (Monitor::Declick, "REPAIRED", "audio"),
-            (Monitor::ClicksOnly, "CLICKS", "only"),
-        ]
-        .into_iter()
-        .enumerate()
-        {
-            let r = self.r(300.0 + i as f32 * 84.0, 320.0, 78.0, 46.0);
-            if self.key(ui, pt, label, r, label, sub, mon == mode, AMBER) && mon != mode {
-                c.set_monitor(mode);
-            }
-        }
-
-        let bypassed = c.bypass();
-        let r = self.r(300.0, 376.0, 162.0, 40.0);
-        if self.key(ui, pt, "BYPASS", r, "BYPASS", "", bypassed, RED) {
-            c.set_bypass(!bypassed);
         }
     }
 
