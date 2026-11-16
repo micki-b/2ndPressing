@@ -45,6 +45,7 @@ pub mod dsp;
 pub mod editor;
 pub mod info;
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use nih_plug::prelude::*;
@@ -284,6 +285,10 @@ pub struct SecondPressing {
     /// Input samples processed by the active engine since it (re)started
     /// (the clicks-per-minute meter's clock).
     samples_done: u64,
+    /// Activated or in the trial (checked in `initialize`, set by the
+    /// window's activation page). When false, audio passes through
+    /// unprocessed (the bypass path, same latency).
+    allowed: Arc<AtomicBool>,
 }
 
 impl Default for SecondPressing {
@@ -298,13 +303,14 @@ impl Default for SecondPressing {
             protection_override: None,
             ui_stats: Arc::new(editor::UiStats::default()),
             samples_done: 0,
+            allowed: Arc::new(AtomicBool::new(true)),
         }
     }
 }
 
 impl SecondPressing {
     fn output_mode(&self) -> OutputMode {
-        if self.params.bypass.value() {
+        if self.params.bypass.value() || !self.allowed.load(Ordering::Relaxed) {
             OutputMode::Bypass
         } else {
             match self.params.monitor.value() {
@@ -428,6 +434,7 @@ impl Plugin for SecondPressing {
             self.params.clone(),
             self.ui_stats.clone(),
             self.model.post.threshold,
+            self.allowed.clone(),
         )
     }
 
@@ -438,6 +445,10 @@ impl Plugin for SecondPressing {
         context: &mut impl InitContext<Self>,
     ) -> bool {
         let sr = buffer_config.sample_rate;
+        // Reads (and on first run writes) the small license file; never on
+        // the audio thread.
+        self.allowed
+            .store(pressing_license::check().may_process(), Ordering::Relaxed);
         if self.dsps.first().is_none_or(|d| d.sample_rate() != sr) {
             log_rate_support(sr);
             self.dsps = [

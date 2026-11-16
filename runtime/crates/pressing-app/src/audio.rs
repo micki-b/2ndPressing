@@ -212,6 +212,9 @@ pub struct Shared {
     /// [`Monitor`] index.
     pub monitor: AtomicU8,
     pub bypass: AtomicBool,
+    /// Activated or in the trial; false: audio passes through unprocessed.
+    /// Set by the faceplate (`Panel`), which checks the license.
+    pub allowed: Arc<AtomicBool>,
     pub stats: Arc<UiStats>,
     /// Input / output callbacks since the session started.
     pub in_callbacks: AtomicU64,
@@ -236,6 +239,7 @@ impl Shared {
             protection: AtomicU8::new(protection_index(p)),
             monitor: AtomicU8::new(monitor_index(m)),
             bypass: AtomicBool::new(false),
+            allowed: Arc::new(AtomicBool::new(true)),
             stats: Arc::new(UiStats::default()),
             in_callbacks: AtomicU64::new(0),
             out_callbacks: AtomicU64::new(0),
@@ -521,7 +525,7 @@ impl InputSide {
         // Controls (same logic as the plugin's process_channels).
         let sens = f32::from_bits(sh.sensitivity.load(Relaxed));
         let threshold = sensitivity_to_threshold(sens, self.model_threshold);
-        let mode = if sh.bypass.load(Relaxed) {
+        let mode = if sh.bypass.load(Relaxed) || !sh.allowed.load(Relaxed) {
             OutputMode::Bypass
         } else {
             match monitor_from(sh.monitor.load(Relaxed)) {

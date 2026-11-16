@@ -31,6 +31,11 @@ pressing-core = { path = "../pressing-core" }
 nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", rev = "de421011f41a6d10fc8c7a6084e4f4dee0143683", features = ["assert_process_allocs"] }
 # The custom window (same pinned revision as nih_plug).
 nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug", rev = "de421011f41a6d10fc8c7a6084e4f4dee0143683" }
+# Free activation codes and the 14-day trial (offline check).
+pressing-license = { path = "../pressing-license" }
+# PASTE CODE key on the activation page (host windows often swallow
+# keystrokes, so the code is read from the clipboard instead of typed).
+arboard = { version = "3.7", default-features = false }
 
 [dev-dependencies]
 # Same source as nih_plug's `assert_process_allocs` dependency, whose global

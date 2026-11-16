@@ -126,7 +126,7 @@ impl App {
         let (inputs, outputs) = audio::scan();
         let now = Instant::now();
         App {
-            panel: Panel::new(model.post.threshold),
+            panel: Panel::new(model.post.threshold, shared.allowed.clone()),
             shared,
             model,
             saved: settings.clone(),

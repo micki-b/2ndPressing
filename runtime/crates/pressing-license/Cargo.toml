@@ -1,0 +1,13 @@
+[package]
+name = "pressing-license"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "2ndPressing: free activation codes (offline Ed25519 check) and the 14-day trial"
+
+[dependencies]
+ed25519-dalek = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

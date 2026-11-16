@@ -19,7 +19,7 @@
 //! Plex Sans Condensed and IBM Plex Mono (SIL OFL 1.1, `assets/fonts`).
 
 use std::collections::VecDeque;
-use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 
 use nih_plug::prelude::*;
@@ -282,9 +282,20 @@ pub struct Panel {
 }
 
 impl Panel {
-    pub fn new(model_threshold: f32) -> Self {
+    /// `allowed` is shared with the audio side: the panel re-checks the
+    /// license when it opens and sets it when a code is activated.
+    pub fn new(model_threshold: f32, allowed: Arc<AtomicBool>) -> Self {
+        let status = pressing_license::check();
+        allowed.store(status.may_process(), Ordering::Relaxed);
         Panel {
-            st: EditorState::default(),
+            st: EditorState {
+                license: LicenseUi {
+                    status,
+                    allowed,
+                    msg: None,
+                },
+                ..EditorState::default()
+            },
             model_threshold,
         }
     }
@@ -308,12 +319,66 @@ struct EditorState {
     meter: Meter,
     /// Showing the info screen instead of the controls.
     info: bool,
+    /// Showing the activation page instead of the controls.
+    activation: bool,
+    license: LicenseUi,
     /// Parsed `assets/info-screen.md` (filled on first use).
     doc: Option<crate::info::InfoDoc>,
     /// Sensitivity when the current drag started, and pixels dragged since.
     drag_start: f32,
     drag_px: f32,
     scroll_px: f32,
+}
+
+/// Activation state shown on the faceplate.
+struct LicenseUi {
+    status: pressing_license::Status,
+    /// Shared with the audio side (false: audio passes through).
+    allowed: Arc<AtomicBool>,
+    /// Result of the last PASTE CODE: text, and whether it worked.
+    msg: Option<(&'static str, bool)>,
+}
+
+impl Default for LicenseUi {
+    fn default() -> Self {
+        LicenseUi {
+            status: pressing_license::Status::Trial {
+                days_left: pressing_license::TRIAL_DAYS,
+            },
+            allowed: Arc::new(AtomicBool::new(true)),
+            msg: None,
+        }
+    }
+}
+
+impl LicenseUi {
+    /// PASTE CODE: read the clipboard, verify, save.
+    fn paste(&mut self) {
+        let text = arboard::Clipboard::new().and_then(|mut c| c.get_text());
+        self.msg = Some(match text {
+            Err(_) => ("Couldn't read the clipboard. Copy the code again.", false),
+            Ok(text) => match pressing_license::activate(&text) {
+                Ok(a) => {
+                    self.status = pressing_license::Status::Registered(a);
+                    self.allowed.store(true, Ordering::Relaxed);
+                    ("Activated. Thank you for testing 2ndPressing!", true)
+                }
+                Err(e) => (e.message(), false),
+            },
+        });
+    }
+}
+
+/// Open a web page in the default browser (best effort).
+fn open_url(url: &str) {
+    #[cfg(target_os = "macos")]
+    let _ = std::process::Command::new("open").arg(url).spawn();
+    #[cfg(windows)]
+    let _ = std::process::Command::new("rundll32")
+        .args(["url.dll,FileProtocolHandler", url])
+        .spawn();
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let _ = std::process::Command::new("xdg-open").arg(url).spawn();
 }
 
 /// Default persisted editor state.
@@ -366,11 +431,12 @@ pub fn create(
     params: Arc<PressingParams>,
     stats: Arc<UiStats>,
     model_threshold: f32,
+    allowed: Arc<AtomicBool>,
 ) -> Option<Box<dyn Editor>> {
     let state = params.editor_state.clone();
     create_egui_editor(
         state,
-        Panel::new(model_threshold),
+        Panel::new(model_threshold, allowed),
         |ctx, _| ctx.set_fonts(fonts()),
         move |ctx, setter, panel| {
             egui::CentralPanel::default()
@@ -498,6 +564,10 @@ impl Faceplate {
             self.info_page(ui, pt, st);
             return;
         }
+        if st.activation {
+            self.activation_page(ui, pt, st);
+            return;
+        }
         pt.rect_filled(self.r(0.0, 0.0, WIDTH as f32, 54.0), 0.0, BAND);
         band_icon(ui, pt, st, self.r(18.0, 9.0, 36.0, 36.0));
         let brand_w = brand(pt, self.p(60.0, 38.0), 18.0, BAND_TEXT);
@@ -522,7 +592,8 @@ impl Faceplate {
         self.sensitivity(ui, pt, c, st, model_threshold);
         self.meter(pt, &st.meter, sr);
         self.keys(ui, pt, c);
-        self.status(pt, stats, sr);
+        self.status(pt, stats, sr, st.license.status);
+        self.license_tag(ui, pt, st);
     }
 
     // ---- Small band key (INFO / CONTROLS) ----
@@ -1060,11 +1131,186 @@ impl Faceplate {
         }
     }
 
+    // ---- License tag (status band, right) ----
+
+    /// Trial days left / trial ended / activated; opens the activation page.
+    fn license_tag(&self, ui: &mut egui::Ui, pt: &egui::Painter, st: &mut EditorState) {
+        use pressing_license::Status;
+        let (text, color) = match st.license.status {
+            Status::Registered(_) => ("ACTIVATED".to_string(), KEY_SUB),
+            Status::Trial { days_left } => (
+                format!(
+                    "FREE TRIAL · {days_left} DAY{} LEFT  ›",
+                    if days_left == 1 { "" } else { "S" }
+                ),
+                LEGEND,
+            ),
+            Status::Expired => ("TRIAL ENDED · ACTIVATE  ›".to_string(), RED),
+        };
+        let r = pt.text(
+            self.p(494.0, 449.0),
+            Align2::RIGHT_CENTER,
+            text,
+            font(MONO_M, 9.5),
+            color,
+        );
+        let resp = ui
+            .interact(r.expand(6.0), ui.id().with("license-tag"), Sense::click())
+            .on_hover_cursor(CursorIcon::PointingHand);
+        if resp.hovered() {
+            pt.line_segment(
+                [r.left_bottom() + Vec2::new(0.0, 2.0), r.right_bottom() + Vec2::new(0.0, 2.0)],
+                Stroke::new(1.0_f32, color),
+            );
+        }
+        if resp.clicked() {
+            st.license.msg = None;
+            st.activation = true;
+        }
+    }
+
+    // ---- Activation page ----
+
+    fn activation_page(&self, ui: &mut egui::Ui, pt: &egui::Painter, st: &mut EditorState) {
+        use pressing_license::Status;
+        // Band (as on the info page).
+        pt.rect_filled(self.r(0.0, 0.0, WIDTH as f32, 46.0), 0.0, BAND);
+        band_icon(ui, pt, st, self.r(16.0, 7.0, 32.0, 32.0));
+        let bw = brand(pt, self.p(54.0, 33.0), 17.0, BAND_TEXT);
+        let dw = pt
+            .text(
+                self.p(54.0 + bw + 8.0, 33.0),
+                Align2::LEFT_BOTTOM,
+                "DECLICKER",
+                font(COND, 17.0),
+                BAND_DIM,
+            )
+            .width();
+        pt.text(
+            self.p(54.0 + bw + 8.0 + dw + 12.0, 31.0),
+            Align2::LEFT_BOTTOM,
+            "ACTIVATION",
+            font(MONO_M, 10.0),
+            AMBER,
+        );
+        if self.small_key(ui, pt, "act-back", self.r(416.0, 10.0, 88.0, 26.0), "CONTROLS") {
+            st.activation = false;
+        }
+
+        // Readout.
+        let glass = self.r(16.0, 58.0, 488.0, 78.0);
+        vgrad(pt, glass, GLASS_TOP, GLASS_BOT);
+        let (num, unit, caption) = match st.license.status {
+            Status::Registered(a) => (
+                "ACTIVE".to_string(),
+                String::new(),
+                format!("REGISTERED BETA USER #{} · CODE ISSUED {}", a.id, a.issued()),
+            ),
+            Status::Trial { days_left } => (
+                days_left.to_string(),
+                format!("DAY{} LEFT", if days_left == 1 { "" } else { "S" }),
+                "FREE TRIAL · AFTER IT, A FREE ACTIVATION CODE IS NEEDED".to_string(),
+            ),
+            Status::Expired => (
+                "ENDED".to_string(),
+                String::new(),
+                "FREE TRIAL ENDED · AUDIO PASSES THROUGH UNPROCESSED".to_string(),
+            ),
+        };
+        let nr = pt.text(
+            glass.left_top() + Vec2::new(14.0, 8.0),
+            Align2::LEFT_TOP,
+            num,
+            font(MONO_M, 30.0),
+            if st.license.status.may_process() { AMBER } else { RED },
+        );
+        pt.text(
+            Pos2::new(nr.right() + 6.0, nr.bottom() - 5.0),
+            Align2::LEFT_BOTTOM,
+            unit,
+            font(MONO, 12.0),
+            AMBER_DIM,
+        );
+        pt.text(
+            Pos2::new(glass.left() + 14.0, glass.bottom() - 10.0),
+            Align2::LEFT_BOTTOM,
+            caption,
+            font(MONO, 8.5),
+            AMBER_FAINT,
+        );
+
+        // Instructions on paper.
+        let paper = self.r(16.0, 146.0, 488.0, 206.0);
+        pt.rect_filled(paper, 2.0, PAPER);
+        pt.rect_stroke(paper, 2.0, Stroke::new(1.0_f32, PAPER_EDGE), StrokeKind::Inside);
+        let ink = Color32::from_rgb(0x2A, 0x26, 0x20);
+        let x = paper.left() + 16.0;
+        let w = paper.width() - 32.0;
+        let mut y = paper.top() + 14.0;
+        pt.text(Pos2::new(x, y), Align2::LEFT_TOP, "FREE ACTIVATION CODE", font(COND, 11.0), LEGEND);
+        y += 22.0;
+        let paras: &[&str] = if matches!(st.license.status, Status::Registered(_)) {
+            &[
+                "This computer is activated. The app and every plugin format on it share this activation.",
+                "Lost your code? Register the same email again and the website shows it once more.",
+            ]
+        } else {
+            &[
+                "2ndPressing is free. Register your email on the website and you get an activation code right away: no payment, no account.",
+                "Copy the whole code (it starts with 2NDP), then press PASTE CODE. One code activates the app and every plugin format on this computer.",
+            ]
+        };
+        for p in paras {
+            let job = LayoutJob::simple(p.to_string(), font(SANS, 12.5), ink, w);
+            let g = pt.layout_job(job);
+            let h = g.size().y;
+            pt.galley(Pos2::new(x, y), g, ink);
+            y += h + 10.0;
+        }
+        if let Some((msg, ok)) = st.license.msg {
+            let color = if ok {
+                Color32::from_rgb(0x2E, 0x6B, 0x2B)
+            } else {
+                Color32::from_rgb(0xB0, 0x3A, 0x26)
+            };
+            let job = LayoutJob::simple(msg.to_string(), font(SANS_B, 12.5), color, w);
+            let g = pt.layout_job(job);
+            pt.galley(Pos2::new(x, paper.bottom() - 14.0 - g.size().y), g, color);
+        }
+
+        // Keys.
+        let registered = matches!(st.license.status, Status::Registered(_));
+        if self.key(ui, pt, "act-paste", self.r(16.0, 366.0, 238.0, 46.0), "PASTE CODE", "from the clipboard", registered, GREEN) {
+            st.license.paste();
+        }
+        if self.key(ui, pt, "act-web", self.r(266.0, 366.0, 238.0, 46.0), "GET A FREE CODE", "secondpressing.com", false, AMBER) {
+            open_url(pressing_license::REGISTER_URL);
+        }
+
+        // Status band.
+        pt.rect_filled(self.r(0.0, 440.0, WIDTH as f32, 30.0), 0.0, FOOT);
+        pt.text(
+            self.p(16.0, 455.0),
+            Align2::LEFT_CENTER,
+            "OFFLINE CHECK · 2NDPRESSING NEVER CONTACTS THE INTERNET",
+            font(MONO, 9.0),
+            LEGEND,
+        );
+    }
+
     // ---- Status band ----
 
-    fn status(&self, pt: &egui::Painter, stats: &UiStats, sr: f64) {
+    fn status(
+        &self,
+        pt: &egui::Painter,
+        stats: &UiStats,
+        sr: f64,
+        license: pressing_license::Status,
+    ) {
         pt.rect_filled(self.r(0.0, 428.0, WIDTH as f32, 42.0), 0.0, FOOT);
-        let text = if sr > 0.0 {
+        let text = if !license.may_process() {
+            "AUDIO PASSES THROUGH UNPROCESSED".to_string()
+        } else if sr > 0.0 {
             let latency = f64::from(stats.latency.load(Ordering::Relaxed)) / sr;
             let lat = if latency < 1.0 {
                 format!("{:.0} ms", latency * 1000.0)

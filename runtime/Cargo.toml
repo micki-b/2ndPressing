@@ -5,6 +5,7 @@ members = [
     "crates/pressing-cli",
     "crates/pressing-plugin",
     "crates/pressing-app",
+    "crates/pressing-license",
     "xtask",
 ]
 
