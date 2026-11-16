@@ -15,6 +15,19 @@ ErrorDocument 404 /404.html
 </IfModule>
 
 AddType font/woff2 .woff2
+AddType application/octet-stream .pkg
+
+# Installers download as files; the beta page and downloads stay out of search.
+<FilesMatch "\.(pkg|exe|msi|zip)$">
+  <IfModule mod_headers.c>
+    Header set Content-Disposition "attachment"
+  </IfModule>
+</FilesMatch>
+<IfModule mod_headers.c>
+  <If "%{REQUEST_URI} =~ m#^/(beta|downloads)(/|$)#">
+    Header always set X-Robots-Tag "noindex, nofollow"
+  </If>
+</IfModule>
 AddType image/svg+xml .svg
 AddDefaultCharset utf-8
 
@@ -30,6 +43,7 @@ AddDefaultCharset utf-8
   ExpiresByType font/woff2 "access plus 1 year"
   ExpiresByType image/svg+xml "access plus 1 month"
   ExpiresByType image/png "access plus 1 month"
+  ExpiresByType application/octet-stream "access plus 1 day"
 </IfModule>
 
 <IfModule mod_headers.c>

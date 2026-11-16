@@ -82,6 +82,23 @@ hosted at **Bluehost**.
    - `/nothing-here` shows the 404 page.
    - Pasting the URL into Messages or Slack shows the share image.
 
+## Beta download page
+
+`public/beta/index.html` is **unlisted**:
+- It isn't linked from the homepage and isn't in the sitemap.
+- `.htaccess` adds `X-Robots-Tag: noindex` for `/beta` and `/downloads`.
+
+Email `https://secondpressing.com/beta/` to testers. The installer itself lives
+in `public/downloads/`. It's git-ignored (17 MB) but included in the upload zip.
+
+To publish a new build:
+1. Run `runtime/release/macos/build-release.sh`.
+2. Copy `runtime/target/release-macos/2ndPressing-<version>.pkg` into
+   `public/downloads/`.
+3. In `beta/index.html`, update the version, file name, size and SHA-256
+   (`shasum -a 256 <file>`).
+4. Rebuild the zip and upload. Afterwards, delete the old `.pkg` on the server.
+
 ## Editing
 
 Text lives in `public/index.html`. Measurement figures and footnotes come

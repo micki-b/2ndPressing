@@ -410,3 +410,17 @@ h1 { font-size: clamp(46px, 6.4vw, 82px); line-height: .98; letter-spacing: -.01
   html { scroll-behavior: auto; }
   .key { transition: none; }
 }
+
+/* ---- Beta download page ---- */
+.beta-hero { padding-block: 64px 72px; }
+.beta-title { font-size: 34px; line-height: 1.1; }
+.beta-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 14px 0 0; font-size: 14px; }
+.beta-facts dt { font: 600 12px/1.7 var(--cond); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.beta-facts dd { margin: 0; color: #3A3732; }
+.beta-doc h2 { font-size: 26px; margin-top: 44px; }
+.beta-doc h2:first-child { margin-top: 0; }
+.beta-list { margin: 14px 0 0; padding-left: 22px; display: grid; gap: 8px; max-width: 64ch; }
+.mono-list { font: 400 13.5px/1.5 var(--mono); list-style: none; padding-left: 0; }
+.mono-list li { overflow-wrap: anywhere; }
+.beta-doc code { font: 400 .92em var(--mono); background: #E4DFD4; padding: 1px 5px; border-radius: 3px; }
+.checksum { font: 400 13px/1.5 var(--mono); background: var(--paper); border: 1px solid var(--paper-edge); border-radius: 4px; padding: 10px 14px; overflow-wrap: anywhere; margin-top: 12px; max-width: 64ch; }
