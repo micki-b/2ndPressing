@@ -20,8 +20,20 @@ server is in `public/`.
 cd website/public && python3 -m http.server 8000
 ```
 
-Then open http://localhost:8000. Opening `index.html` directly from Finder
-won't load the styles, because the page uses site-absolute paths (`/assets/…`).
+Then open http://localhost:8000. `index.html` links its files relatively
+(`assets/…`), so it also opens straight from Finder and in Pinegrow. Keep it
+that way. `404.html` must keep site-absolute paths (`/assets/…`), because
+it is served for missing pages at any depth.
+
+## Visual editing
+
+Pinegrow (`brew install --cask pinegrow`) edits these files in place:
+*Open project* › `website/public`. Afterwards, upload the changed files,
+or rebuild the zip:
+
+```sh
+cd website/public && zip -qr -X ../secondpressing-site.zip . -x '*.DS_Store'
+```
 
 ## Publish on Bluehost
 
