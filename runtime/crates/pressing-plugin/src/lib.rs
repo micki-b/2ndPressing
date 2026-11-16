@@ -43,6 +43,7 @@
 
 pub mod dsp;
 pub mod editor;
+pub mod info;
 
 use std::sync::Arc;
 

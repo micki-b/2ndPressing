@@ -120,6 +120,15 @@ For a universal binary, build with nih-plug's `bundle-universal`, which is untes
 Only the macOS arm64 bundle has been built and validated. On Windows and Linux,
 `cargo check` passes, but no bundle has been built or loaded in a host.
 
+### Info screen
+
+The **INFO** key on the faceplate opens a spec-sheet page (headline readouts,
+then a scrolling data sheet). Every word comes from
+`crates/pressing-plugin/assets/info-screen.md`: edit that file and rebuild, no
+code changes needed. Keep its `##`/`###` headings and pipe tables; `**bold**`
+and footnote markers like `[1]` are supported, a table headed `Lamp` draws
+status lamps and one headed `Background loudness` draws paired bars.
+
 ## Audio Unit (Logic Pro, GarageBand, other AU hosts)
 
 Logic only loads Audio Units, so `au/` builds an AUv2 wrapper with

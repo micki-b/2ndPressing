@@ -76,6 +76,8 @@ const KNOB_LINE: Color32 = Color32::from_rgb(0xF0, 0xEB, 0xDF);
 const COND: &str = "plex-cond";
 const MONO: &str = "plex-mono";
 const MONO_M: &str = "plex-mono-medium";
+const SANS: &str = "plex-sans";
+const SANS_B: &str = "plex-sans-semibold";
 
 // ---- Shared numbers ----
 
@@ -208,6 +210,10 @@ pub fn meter_zone(rate: f64) -> (Color32, &'static str) {
 #[derive(Default)]
 struct EditorState {
     meter: Meter,
+    /// Showing the info screen instead of the controls.
+    info: bool,
+    /// Parsed `assets/info-screen.md` (filled on first use).
+    doc: Option<crate::info::InfoDoc>,
     /// Sensitivity when the current drag started, and pixels dragged since.
     drag_start: f32,
     drag_px: f32,
@@ -234,11 +240,26 @@ fn fonts() -> FontDefinitions {
             MONO_M,
             &include_bytes!("../assets/fonts/IBMPlexMono-Medium.ttf")[..],
         ),
+        (
+            SANS,
+            &include_bytes!("../assets/fonts/IBMPlexSans-Regular.ttf")[..],
+        ),
+        (
+            SANS_B,
+            &include_bytes!("../assets/fonts/IBMPlexSans-SemiBold.ttf")[..],
+        ),
     ] {
         f.font_data
             .insert(name.to_owned(), Arc::new(FontData::from_static(bytes)));
-        f.families
-            .insert(FontFamily::Name(name.into()), vec![name.to_owned()]);
+        // egui's bundled fonts as fallback for any glyph Plex lacks.
+        let mut chain = vec![name.to_owned()];
+        chain.extend(
+            f.families
+                .get(&FontFamily::Proportional)
+                .cloned()
+                .unwrap_or_default(),
+        );
+        f.families.insert(FontFamily::Name(name.into()), chain);
     }
     f
 }
@@ -349,6 +370,16 @@ impl Faceplate {
             PANEL_TOP,
             PANEL_BOT,
         );
+        let sr = f64::from(f32::from_bits(stats.sample_rate.load(Ordering::Relaxed)));
+        st.meter.update(
+            stats.samples.load(Ordering::Relaxed),
+            stats.regions.load(Ordering::Relaxed),
+            sr,
+        );
+        if st.info {
+            self.info_page(ui, pt, st);
+            return;
+        }
         pt.rect_filled(self.r(0.0, 0.0, WIDTH as f32, 54.0), 0.0, BAND);
         let brand_w = brand(pt, self.p(26.0, 38.0), 18.0, BAND_TEXT);
         pt.text(
@@ -359,23 +390,189 @@ impl Faceplate {
             BAND_DIM,
         );
         pt.text(
-            self.p(494.0, 36.0),
+            self.p(432.0, 36.0),
             Align2::RIGHT_BOTTOM,
             "CLICK REPAIR · STEREO",
             font(MONO, 9.5),
             BAND_DIM,
         );
+        if self.small_key(ui, pt, "info-key", self.r(444.0, 14.0, 52.0, 26.0), "INFO") {
+            st.info = true;
+        }
 
         self.sensitivity(ui, pt, setter, params, st, model_threshold);
-        let sr = f64::from(f32::from_bits(stats.sample_rate.load(Ordering::Relaxed)));
-        st.meter.update(
-            stats.samples.load(Ordering::Relaxed),
-            stats.regions.load(Ordering::Relaxed),
-            sr,
-        );
         self.meter(pt, &st.meter, sr);
         self.keys(ui, pt, setter, params);
         self.status(pt, stats, sr);
+    }
+
+    // ---- Small band key (INFO / CONTROLS) ----
+
+    fn small_key(
+        &self,
+        ui: &mut egui::Ui,
+        pt: &egui::Painter,
+        id: &str,
+        rect: Rect,
+        label: &str,
+    ) -> bool {
+        let resp = ui
+            .interact(rect, ui.id().with(id), Sense::click())
+            .on_hover_cursor(CursorIcon::PointingHand);
+        let down = resp.is_pointer_button_down_on();
+        let cap = rect.translate(Vec2::new(0.0, if down { 1.0 } else { 0.0 }));
+        pt.rect_filled(
+            rect.translate(Vec2::new(0.0, 2.0)),
+            3.0,
+            Color32::from_black_alpha(90),
+        );
+        pt.rect_filled(cap, 3.0, KEY_BOT);
+        vgrad(
+            pt,
+            cap.shrink(1.5),
+            if down { KEY_ON_TOP } else { KEY_TOP },
+            KEY_BOT,
+        );
+        pt.rect_stroke(
+            cap,
+            CornerRadius::same(3),
+            Stroke::new(1.0_f32, KEY_EDGE),
+            StrokeKind::Inside,
+        );
+        pt.text(
+            cap.center(),
+            Align2::CENTER_CENTER,
+            label,
+            font(COND, 10.0),
+            KEY_TEXT,
+        );
+        resp.clicked()
+    }
+
+    // ---- Info screen (layout A) ----
+
+    fn info_page(&self, ui: &mut egui::Ui, pt: &egui::Painter, st: &mut EditorState) {
+        let doc = st
+            .doc
+            .get_or_insert_with(|| crate::info::parse(crate::info::INFO_MD))
+            .clone();
+        // Band: wordmark, section label, back key.
+        pt.rect_filled(self.r(0.0, 0.0, WIDTH as f32, 46.0), 0.0, BAND);
+        let bw = brand(pt, self.p(22.0, 33.0), 17.0, BAND_TEXT);
+        let dw = pt
+            .text(
+                self.p(22.0 + bw + 8.0, 33.0),
+                Align2::LEFT_BOTTOM,
+                "DECLICKER",
+                font(COND, 17.0),
+                BAND_DIM,
+            )
+            .width();
+        pt.text(
+            self.p(22.0 + bw + 8.0 + dw + 12.0, 31.0),
+            Align2::LEFT_BOTTOM,
+            &doc.section_label,
+            font(MONO_M, 10.0),
+            AMBER,
+        );
+        let back = if doc.back_key.is_empty() {
+            "CONTROLS"
+        } else {
+            doc.back_key.as_str()
+        };
+        if self.small_key(ui, pt, "back-key", self.r(416.0, 10.0, 88.0, 26.0), back) {
+            st.info = false;
+        }
+
+        // Readouts.
+        let n = doc.readouts.len().max(1) as f32;
+        let gap = 8.0;
+        let rw = (488.0 - gap * (n - 1.0)) / n;
+        for (i, r) in doc.readouts.iter().enumerate() {
+            let rect = self.r(16.0 + i as f32 * (rw + gap), 56.0, rw, 64.0);
+            vgrad(pt, rect, GLASS_TOP, GLASS_BOT);
+            let (num, unit) = crate::info::split_unit(&r.number);
+            let nr = pt.text(
+                rect.left_top() + Vec2::new(10.0, 6.0),
+                Align2::LEFT_TOP,
+                num,
+                font(MONO_M, 25.0),
+                AMBER,
+            );
+            pt.text(
+                Pos2::new(nr.right() + 3.0, nr.bottom() - 4.0),
+                Align2::LEFT_BOTTOM,
+                unit,
+                font(MONO, 11.0),
+                AMBER_DIM,
+            );
+            let mut job = LayoutJob::simple(
+                r.caption.to_uppercase(),
+                font(MONO, 8.0),
+                AMBER_FAINT,
+                rw - 20.0,
+            );
+            job.wrap.max_rows = 2;
+            let g = pt.layout_job(job);
+            pt.galley(
+                Pos2::new(rect.left() + 10.0, rect.bottom() - 6.0 - g.size().y),
+                g,
+                AMBER_FAINT,
+            );
+        }
+
+        // Data sheet (scrolls).
+        let paper = self.r(16.0, 128.0, 488.0, 304.0);
+        pt.rect_filled(paper, 2.0, PAPER);
+        pt.rect_stroke(
+            paper,
+            2.0,
+            Stroke::new(1.0_f32, PAPER_EDGE),
+            StrokeKind::Inside,
+        );
+        let style = crate::info::Style {
+            text: Color32::from_rgb(0x2A, 0x26, 0x20),
+            sub: KEY_SUB,
+            heading: LEGEND,
+            rule: Color32::from_rgba_unmultiplied(0x3C, 0x3A, 0x36, 46),
+            ink: INK,
+            grey_bar: Color32::from_rgb(0xA3, 0x9A, 0x86),
+            track: Color32::from_rgba_unmultiplied(0x3C, 0x3A, 0x36, 30),
+            lamp_green: GREEN,
+            lamp_amber: AMBER,
+            lamp_off: LAMP_OFF,
+            sans: SANS,
+            sans_bold: SANS_B,
+            cond: COND,
+            mono: MONO,
+        };
+        let inner = paper.shrink2(Vec2::new(12.0, 8.0));
+        ui.allocate_new_ui(egui::UiBuilder::new().max_rect(inner), |ui| {
+            egui::ScrollArea::vertical()
+                .id_salt("info-sheet")
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
+                    ui.set_width(inner.width() - 12.0);
+                    crate::info::sheet(ui, &doc, &style);
+                });
+        });
+
+        // Status band.
+        pt.rect_filled(self.r(0.0, 440.0, WIDTH as f32, 30.0), 0.0, FOOT);
+        pt.text(
+            self.p(16.0, 455.0),
+            Align2::LEFT_CENTER,
+            &doc.status_left,
+            font(MONO, 9.0),
+            LEGEND,
+        );
+        pt.text(
+            self.p(504.0, 455.0),
+            Align2::RIGHT_CENTER,
+            &doc.status_right,
+            font(MONO, 9.0),
+            LEGEND,
+        );
     }
 
     // ---- Sensitivity ----
