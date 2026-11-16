@@ -20,7 +20,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <dict>
   <key>CFBundleName</key><string>2ndPressing</string>
   <key>CFBundleDisplayName</key><string>2ndPressing Declicker</string>
-  <key>CFBundleIdentifier</key><string>org.2ndpressing.app</string>
+  <key>CFBundleIdentifier</key><string>com.secondpressing.app</string>
   <key>CFBundleExecutable</key><string>2ndpressing</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>

@@ -173,6 +173,44 @@ The app replaces nih-plug's generic standalone (`pressing-standalone`). That
 standalone only opens devices with exactly 2 channels, and it halts silently
 when the input never starts.
 
+## macOS release (signed installer)
+
+`release/macos/build-release.sh` builds everything as universal binaries
+(Apple Silicon + Intel). It signs them with the Developer ID certificates in
+the login keychain, using the hardened runtime and a secure timestamp; the app
+also gets the audio-input entitlement. It then packages them into one signed
+installer and, if a notarization login is set up, notarizes and staples it.
+
+```sh
+release/macos/build-release.sh              # full release: target/release-macos/2ndPressing-<version>.pkg
+NOTARIZE=0 release/macos/build-release.sh   # sign and package only
+```
+
+The installer offers four choices:
+
+| Choice | Installs to |
+|---|---|
+| App | `/Applications/2ndPressing.app` |
+| Audio Unit | `/Library/Audio/Plug-Ins/Components` (also installs the CLAP, which it loads) |
+| VST3 | `/Library/Audio/Plug-Ins/VST3` |
+| CLAP | `/Library/Audio/Plug-Ins/CLAP` |
+
+Identifiers:
+- App: `com.secondpressing.app`
+- CLAP ID: `com.secondpressing.declicker`
+- Bundles: `com.secondpressing.declicker.{clap,vst3,auv2}`
+- Packages: `com.secondpressing.pkg.*`
+- Audio Unit codes: `aufx`/`Dclk`/`SnPr`
+
+Don't change these after release: DAWs save sessions against them.
+
+One-time setup for notarization (your Apple ID, Team ID and an app-specific
+password from account.apple.com):
+
+```sh
+xcrun notarytool store-credentials 2ndPressing-notary --apple-id ... --team-id ... --password ...
+```
+
 ## Audio Unit (Logic Pro, GarageBand, other AU hosts)
 
 Logic only loads Audio Units, so `au/` builds an AUv2 wrapper with

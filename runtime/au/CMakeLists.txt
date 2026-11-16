@@ -36,7 +36,7 @@ add_library(pressing_auv2 MODULE)
 target_add_auv2_wrapper(
     TARGET pressing_auv2
     OUTPUT_NAME "${PLUGIN_NAME}"
-    BUNDLE_IDENTIFIER "org.2ndpressing.declicker.auv2"
+    BUNDLE_IDENTIFIER "com.secondpressing.declicker.auv2"
     BUNDLE_VERSION "${PROJECT_VERSION}"
     INSTRUMENT_TYPE "aufx"          # effect
     MANUFACTURER_NAME "2ndPressing"

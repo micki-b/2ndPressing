@@ -488,7 +488,7 @@ impl Plugin for SecondPressing {
 }
 
 impl ClapPlugin for SecondPressing {
-    const CLAP_ID: &'static str = "org.2ndpressing.declicker";
+    const CLAP_ID: &'static str = "com.secondpressing.declicker";
     const CLAP_DESCRIPTION: Option<&'static str> =
         Some("Near-real-time LP click and pop removal (ClickNet detector + LSAR repair)");
     const CLAP_MANUAL_URL: Option<&'static str> = None;
