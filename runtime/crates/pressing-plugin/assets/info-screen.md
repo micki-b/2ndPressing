@@ -26,7 +26,7 @@ footnote markers are written as [1] … [5].
 
 ### More music. Fewer clicks.
 
-A compact neural network finds clicks and pops, then rebuilds each flagged passage from the music on either side. Everything else passes through untouched, bit for bit.  Built by a music lover with an extensively recorded LP collection who happens to be an engineer who strives to build efficient and simple solutions for sensible people.
+A compact neural network finds clicks and pops, then rebuilds each flagged passage from the music on either side. Everything else passes through untouched, bit for bit.  Built by a music lover with an extensively recorded LP collection who strives to build efficient and simple solutions for sensible people.
 
 ### Measured on 24 albums it never trained on [1]
 
