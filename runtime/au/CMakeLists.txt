@@ -13,7 +13,7 @@
 
 cmake_minimum_required(VERSION 3.21)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "macOS deployment target")
-project(pressing_auv2 VERSION 0.1.1 LANGUAGES C CXX OBJC OBJCXX)
+project(pressing_auv2 VERSION 0.2.0 LANGUAGES C CXX OBJC OBJCXX)
 
 # clap-wrapper only sets the C++ standard when it is the top-level project;
 # its AudioUnitSDK target needs C++17 (std::byte, lock_guard CTAD).
