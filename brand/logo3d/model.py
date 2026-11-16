@@ -246,7 +246,52 @@ def decal_svg(face, cam, fin, S):
     # Name only, centred on the 14 mm tall front face.
     return f'<g transform="{m}">{wordmark_path(2.9, fin["text"], 0, 8.0) or wordmark_svg(2.9, fin["text"], 0, 8.0)}</g>'
 
-def render(fin, cam, S=400.0, pad=0.08, focus=None, aspect=None, uid="v", grooves=False):
+def full_record(cam, S, vb, uid):
+    """A record large enough to fill the whole frame: concentric grooves round
+    the spindle (to the left, at x = -100), track bands, a glossy streak where
+    the key light reflects, and grooves thinning out with distance."""
+    cxr = -100.0
+    x0, y0, w, h = vb
+    m = .03
+    def inside(q):
+        return x0 - w*m <= q[0] <= x0 + w*(1+m) and y0 - h*m <= q[1] <= y0 + h*(1+m)
+    out = [f'<rect x="{x0:.1f}" y="{y0:.1f}" width="{w:.1f}" height="{h:.1f}" fill="url(#{uid}-rec)"/>']
+    near = cam.cs((0, 0, 0))[2]
+    R, k = 20.0, 0
+    while R < 560:
+        k += 1
+        gap = (k % 26 == 0)
+        R += 3.4 if gap else .78
+        n = max(24, int(2.7 * R / 2.0))
+        run = []
+        def flush(run):
+            for i in range(0, len(run) - 1, 9):
+                chunk = run[i:i + 10]
+                if len(chunk) < 2:
+                    continue
+                spec = sum(c[1] for c in chunk) / len(chunk)
+                fade = min(1.0, near / max(chunk[0][2], 1.0)) ** .9
+                op = ((.03 if gap else .24) + .7 * spec) * fade
+                if op < .025:
+                    continue
+                pts = " ".join(f"{q[0]:.1f},{q[1]:.1f}" for q, _, _ in chunk)
+                out.append(f'<polyline points="{pts}" fill="none" stroke="#A39F95" stroke-opacity="{min(op, .95):.3f}" stroke-width="{.3 + .4*spec:.2f}"/>')
+        for i in range(n + 1):
+            t = -1.25 + 2.85 * i / n
+            p = (cxr + R*math.cos(t), 0, R*math.sin(t))
+            zc = cam.cs(p)[2]
+            q = cam.proj(p, S) if zc > 1 else None
+            if q is None or not inside(q):
+                flush(run); run = []
+                continue
+            v = norm(sub(cam.pos, p)); hv = norm(add(LIGHT, v))
+            radial = (math.cos(t), 0, math.sin(t))
+            nrm = norm(add((0, 1, 0), mul(radial, .35 if k % 2 else -.35)))
+            run.append((q, max(0.0, dot(nrm, hv)) ** 60, zc))
+        flush(run)
+    return out
+
+def render(fin, cam, S=400.0, pad=0.08, focus=None, aspect=None, uid="v", grooves=False, full=False):
     faces = model(fin)
     vis = []
     for f in faces:
@@ -286,19 +331,27 @@ def render(fin, cam, S=400.0, pad=0.08, focus=None, aspect=None, uid="v", groove
 <filter id="{uid}-blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="{vb[2]*.012:.2f}"/></filter>
 <linearGradient id="{uid}-gx" x1="0" y1="0" x2="1" y2="0"><stop offset=".86" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
 <linearGradient id="{uid}-gy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".16" stop-color="#fff"/></linearGradient>
+<linearGradient id="{uid}-rec" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#24221F"/><stop offset="1" stop-color="#121110"/></linearGradient>
 <mask id="{uid}-ex"><rect x="{vb[0]:.1f}" y="{vb[1]:.1f}" width="{vb[2]:.1f}" height="{vb[3]:.1f}" fill="url(#{uid}-gx)"/></mask>
 <mask id="{uid}-ey"><rect x="{vb[0]:.1f}" y="{vb[1]:.1f}" width="{vb[2]:.1f}" height="{vb[3]:.1f}" fill="url(#{uid}-gy)"/></mask>
-</defs>
-<g mask="url(#{uid}-ex)"><g mask="url(#{uid}-ey)">''')
+</defs>''')
+    out.append('<g><g>' if full else f'<g mask="url(#{uid}-ex)"><g mask="url(#{uid}-ey)">')
     disc = [cam.proj((cxr + 150*math.cos(t), 0, 150*math.sin(t)), S) for t in [2*math.pi*i/180 for i in range(180)]
             if cam.cs((cxr + 150*math.cos(2*math.pi*0), 0, 0))[2] > 0]
-    g = [f'<g mask="url(#{uid}-m)">']
-    g.append('<polygon points="' + " ".join(f"{a:.1f},{b:.1f}" for a, b in disc) + '" fill="#171614"/>')
+    if full:
+        g = ['<g>'] + full_record(cam, S, vb, uid)
+        radii_ok = False
+    else:
+        g = [f'<g mask="url(#{uid}-m)">']
+        g.append('<polygon points="' + " ".join(f"{a:.1f},{b:.1f}" for a, b in disc) + '" fill="#171614"/>')
+        radii_ok = True
     # Grooves with a glossy streak where the key light reflects toward the camera.
     # Groove rings; with grooves=True, a fine visible pitch and the slightly
     # wider, smoother bands between tracks, as on a real LP.
     radii = []
-    if grooves:
+    if not radii_ok:
+        pass
+    elif grooves:
         R = 52.0
         k = 0
         while R < 156:
@@ -306,7 +359,7 @@ def render(fin, cam, S=400.0, pad=0.08, focus=None, aspect=None, uid="v", groove
             gap = (k % 26 == 0)
             R += 3.4 if gap else .78
             radii.append((R, gap))
-    else:
+    elif radii_ok:
         radii = [(52 + k*1.45, False) for k in range(72)]
     for k, (R, gap) in enumerate(radii):
         seg = []

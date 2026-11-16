@@ -99,7 +99,7 @@ def write_rgba(img, path):
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     # 1. Master files.
-    hero = render(FIN_A1, Cam(**V2), uid="logo", focus=66, aspect=1.45, grooves=True)
+    hero = render(FIN_A1, Cam(**V2), uid="logo", focus=66, aspect=1.45, grooves=True, full=True)
     (OUT / "2ndpressing-cartridge.svg").write_text(hero)
     icon = front_icon(FIN_A1, True)
     plain = front_icon(FIN_A1, False)

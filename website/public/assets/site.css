@@ -166,7 +166,7 @@ h1 { font-size: clamp(46px, 6.4vw, 82px); line-height: .98; letter-spacing: -.01
 
 /* Hero: the 3D logo. */
 .hero-art { margin: 0; }
-.hero-art img { width: 100%; height: auto; display: block; filter: drop-shadow(0 22px 30px rgba(40, 36, 30, .22)); }
+.hero-art img { width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid #2A2825; box-shadow: 0 18px 40px rgba(40, 36, 30, .28); }
 
 /* Strip chart, in "How it works". */
 .how-chart { margin-top: 48px; max-width: 760px; }
