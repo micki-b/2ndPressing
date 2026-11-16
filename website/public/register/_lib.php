@@ -29,6 +29,11 @@ function sp_private(): string {
     return dirname(__DIR__, 3) . '/secondpressing-private';
 }
 
+// PHP errors go to the private folder, never next to the pages.
+ini_set('log_errors', '1');
+ini_set('display_errors', '0');
+ini_set('error_log', sp_private() . '/php-errors.log');
+
 function sp_secret(string $name): string {
     $v = @file_get_contents(sp_private() . '/' . $name);
     if ($v === false) {

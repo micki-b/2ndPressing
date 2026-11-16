@@ -3,7 +3,7 @@
 DirectoryIndex index.php
 
 # Shared code is included, never served.
-<FilesMatch "^_">
+<FilesMatch "^(_|error_log|\.)">
   Require all denied
 </FilesMatch>
 
