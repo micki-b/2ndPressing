@@ -98,7 +98,16 @@ function sp_db(): PDO {
         email TEXT UNIQUE NOT NULL,
         created INTEGER NOT NULL,
         confirmed INTEGER,
-        issued_day INTEGER)');
+        issued_day INTEGER,
+        first_name TEXT,
+        last_name TEXT)');
+    // Databases created before names were asked for.
+    $cols = array_column($db->query('PRAGMA table_info(users)')->fetchAll(), 'name');
+    foreach (['first_name', 'last_name'] as $c) {
+        if (!in_array($c, $cols, true)) {
+            $db->exec("ALTER TABLE users ADD COLUMN $c TEXT");
+        }
+    }
     $db->exec('CREATE TABLE IF NOT EXISTS tokens (
         hash TEXT PRIMARY KEY,
         user_id INTEGER NOT NULL,
@@ -111,6 +120,30 @@ function sp_db(): PDO {
     $db->prepare('DELETE FROM tokens WHERE created < ?')->execute([$now - SP_VIEW_DAYS * 86400]);
     $db->prepare('DELETE FROM users WHERE confirmed IS NULL AND created < ?')->execute([$now - SP_PURGE_DAYS * 86400]);
     return $db;
+}
+
+// MARK: - Names
+
+const SP_NAME_MAX = 40;
+
+/// A name as typed, tidied; or an error message. Only letters, spaces,
+/// hyphens, apostrophes and full stops: the first name goes into an email
+/// sent to the address typed next to it, so links, addresses and numbers
+/// must never get through (a common way to abuse sign-up forms).
+function sp_name(string $raw, string $label, bool $required): array {
+    $name = trim((string)preg_replace('/\s+/u', ' ', $raw));
+    if ($name === '') {
+        return $required ? ['', "Please enter your $label."] : ['', null];
+    }
+    if (mb_strlen($name) > SP_NAME_MAX) {
+        return [$name, 'Please keep the ' . $label . ' under ' . SP_NAME_MAX . ' characters.'];
+    }
+    if (!preg_match("/^\\p{L}[\\p{L}\\p{M} .'’-]*$/u", $name)
+        || preg_match('/\p{L}\.\p{L}{2,}/u', $name)       // looks like a domain
+        || preg_match('/\bwww\b/iu', $name)) {
+        return [$name, 'Please use letters only in the ' . $label . '.'];
+    }
+    return [$name, null];
 }
 
 /// Count this key's recent hits, then record one. True if over the limit.
@@ -196,7 +229,7 @@ function sp_page_start(string $title, bool $index = true): void {
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/site.css?v=6">
-<link rel="stylesheet" href="/assets/register.css?v=2">
+<link rel="stylesheet" href="/assets/register.css?v=3">
 </head>
 <body>
 
