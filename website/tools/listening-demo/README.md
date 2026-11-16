@@ -55,3 +55,34 @@ artist-permitted releases, or your own.
 `--private` adds a "private prototype, not for the public site" notice. Use
 it for anything else, such as the commercial Fleetwood Mac sample used for
 the prototype review. Generated audio and data stay out of git.
+
+## 3. Publish on secondpressing.com
+
+```sh
+python3 website/tools/listening-demo/build.py OUT_DIR --site   # -> OUT_DIR/index.html + listen.js
+```
+
+`--site` makes a full document that uses the site's own fonts and loads the
+script from `listen.js`, as the site's CSP requires. Optional keys in
+`demo.json` that only matter here:
+- `title`: the recording's short name, shown in the eyebrow and tab title.
+- `back`: `{"href": "/listen/", "label": "All demos"}` for the sitebar link
+  (the default is Home).
+- `aside`: an HTML note shown in an amber box under the intro.
+
+Copy `index.html`, `listen.js` and `audio/` to `website/public/listen/NAME/`
+and add the recording to the chooser, `website/public/listen/index.html`.
+The audio is git-ignored, like the installers.
+
+The published demos, from the Internet Archive's Great 78 Project
+(`--protection off`, sensitivity 50 %):
+
+| Folder | Archive item | Clip |
+| --- | --- | --- |
+| `kreisler` | `78_pierrots-dance-song_fritz-kreisler-carl-lamson-e-w-korngold-f-kreisler_gbia0197691a` | 4.5–34.5 s; chapters 0 run-in groove, 3.5 music begins, 15 midpoint |
+| `lonesome` | `78_lonesome-mamma-blues_jazz-bos-carolina-serenaders-nickel-brown_gbia0101529b` | 0–30 s; chapters 0 run-in groove, 3 band begins, 15 midpoint |
+
+Headless Chrome's `--virtual-time-budget` can end before `#selftest`
+finishes on a local server, because decoding doesn't hold virtual time; the
+title then stays unchanged. That is the harness, not the page: test against
+the live site, or keep a slow request open while decoding.

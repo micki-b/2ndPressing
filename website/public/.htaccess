@@ -16,6 +16,7 @@ ErrorDocument 404 /404.html
 
 AddType font/woff2 .woff2
 AddType application/octet-stream .pkg
+AddType audio/mp4 .mp4
 
 # Installers download as files; the beta page and downloads stay out of search.
 <FilesMatch "\.(pkg|exe|msi|zip)$">
@@ -23,6 +24,13 @@ AddType application/octet-stream .pkg
     Header set Content-Disposition "attachment"
   </IfModule>
 </FilesMatch>
+# The listening demo (/listen/) runs the site's own script and uses inline
+# styles in its faceplate drawing; everything still comes from this site only.
+<IfModule mod_headers.c>
+  <If "%{REQUEST_URI} =~ m#^/listen(/|$)#">
+    Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'self'"
+  </If>
+</IfModule>
 <IfModule mod_headers.c>
   <If "%{REQUEST_URI} =~ m#^/(beta|downloads)(/|$)#">
     Header always set X-Robots-Tag "noindex, nofollow"

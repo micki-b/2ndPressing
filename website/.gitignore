@@ -7,3 +7,5 @@ public/downloads/**/*.pkg
 public/downloads/**/*.exe
 public/downloads/**/*.msi
 deploy.env
+# Listening-demo audio (rebuild with tools/listening-demo, see its README)
+public/listen/**/audio/

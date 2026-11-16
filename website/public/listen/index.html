@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Listen · 2ndPressing</title>
+<meta name="description" content="Hear 2ndPressing remove clicks from two public-domain 78s: switch between the repaired audio, the original and the removed clicks on a working replica of the plugin.">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<style>
+@font-face { font-family: "IBM Plex Sans Condensed"; src: url("/assets/fonts/IBMPlexSansCondensed-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "IBM Plex Sans"; src: url("/assets/fonts/IBMPlexSans-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "IBM Plex Sans"; src: url("/assets/fonts/IBMPlexSans-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/assets/fonts/IBMPlexMono-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/assets/fonts/IBMPlexMono-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+/* Same dark "listening room" ground as the demo pages it links to. */
+:root {
+  --room: #24221F; --card: #D4CFC3; --card-2: #C6C0B2; --text: #EBE6DA; --dim: #A9A395;
+  --ink: #2C2A26; --muted: #5E594F; --amber: #F2A93B; --edge: #8C8577; --glass: #1B1A17;
+  --cond: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(1200px 700px at 50% 0%, #34322E, var(--room)); color: var(--text); font: 400 15px/1.55 var(--sans); min-height: 100vh; }
+.wrap { max-width: 920px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.sitebar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid #3E3B36; }
+.sb-brand { font: 600 20px/1 var(--cond); color: var(--text); text-decoration: none; }
+.sb-brand .nd { font-size: .6em; vertical-align: .45em; line-height: 0; }
+.sb-back { font: 600 12px/1 var(--cond); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); text-decoration: none; }
+.sb-back:hover { color: var(--text); }
+.top { display: grid; gap: 8px; margin-bottom: 22px; }
+.eyebrow { font: 600 12px/1 var(--cond); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin: 0; }
+h1 { font: 600 clamp(28px, 4vw, 38px)/1.05 var(--cond); margin: 0; text-wrap: balance; }
+.intro { margin: 0; color: #CFC9BB; max-width: 68ch; }
+.aside { margin: 4px 0 0; padding: 12px 14px; border-left: 3px solid var(--amber); background: rgba(242,169,59,.08); color: #E3DDCF; max-width: 68ch; border-radius: 0 4px 4px 0; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.opt { background: linear-gradient(var(--card), var(--card-2)); color: var(--ink); border-radius: 10px; overflow: hidden; display: grid; grid-template-rows: auto 1fr auto; box-shadow: 0 20px 44px rgba(0,0,0,.4); min-width: 0; }
+.opt-head { background: #3C3A36; color: var(--text); padding: 12px 16px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.opt-head b { font: 600 18px/1.1 var(--cond); letter-spacing: .02em; }
+.opt-head span { font: 500 12px/1 var(--mono); color: var(--dim); }
+.opt-body { padding: 14px 16px 6px; display: grid; gap: 10px; align-content: start; }
+.opt-body h2 { font: 600 20px/1.15 var(--cond); margin: 0; text-wrap: balance; }
+.opt-body p { margin: 0; font-size: 14px; color: #3A3732; }
+.readout { display: flex; align-items: baseline; gap: 8px; background: linear-gradient(var(--glass), #26241F); border-radius: 4px; padding: 10px 12px; }
+.readout .n { font: 500 30px/1 var(--mono); color: var(--amber); font-variant-numeric: tabular-nums; }
+.readout .u { font: 400 12px/1.3 var(--mono); color: #C98A2E; }
+.facts { font: 400 12.5px/1.5 var(--mono); color: var(--muted); }
+.go { margin: 12px 16px 16px; display: inline-flex; align-items: center; gap: 10px; justify-self: start; font: 600 13px/1 var(--cond); letter-spacing: .1em; text-transform: uppercase; color: var(--ink); text-decoration: none; background: linear-gradient(#ECE8DE, #CFC9BB); border: 1px solid var(--edge); border-radius: 4px; box-shadow: 0 3px 0 var(--edge); padding: 11px 16px 11px 12px; }
+.go .lamp { width: 16px; height: 4px; border-radius: 1px; background: var(--amber); box-shadow: 0 0 8px rgba(242,169,59,.6); }
+.go:hover { background: linear-gradient(#F3F0E8, #CFC9BB); }
+.go:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--edge); }
+.go:focus-visible, .sb-back:focus-visible, .sb-brand:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+.notes { margin-top: 28px; display: grid; gap: 10px; color: #CFC9BB; font-size: 14.5px; }
+.notes h2 { font: 600 13px/1 var(--cond); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin: 6px 0 0; }
+.notes p { margin: 0; max-width: 74ch; }
+.notes a { color: var(--amber); }
+@media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="sitebar"><a href="/" class="sb-brand">2<span class="nd">nd</span>Pressing</a><a href="/" class="sb-back">Home</a></div>
+  <header class="top">
+    <p class="eyebrow">Listening demo</p>
+    <h1>Hear it on the faceplate</h1>
+    <p class="intro">Each demo opens a working replica of the plugin. Press play, then switch with its own keys: <b>REPAIRED</b> for the declicked audio, <b>BYPASS</b> for the original, <b>CLICKS</b> to hear only what was removed. All three play in sync.</p>
+    <p class="aside"><b>A note on these examples.</b> 2ndPressing’s results are <b>much</b> more noticeable on modern recordings. Copyright limits what can be published here, so these demos use 78 rpm records made before 1926, which are in the public domain.</p>
+  </header>
+
+  <section class="grid" aria-label="Demos">
+    <article class="opt">
+      <div class="opt-head"><b>Violin and piano</b><span>1924</span></div>
+      <div class="opt-body">
+        <h2>Kreisler, “Pierrot’s Dance Song” (Korngold)</h2>
+        <p>Fritz Kreisler with Carl Lamson at the piano. Quiet, lyrical passages where every click is easy to hear.</p>
+        <div class="readout"><span class="n">1,207</span><span class="u">clicks repaired<br>in 30 s</span></div>
+        <p class="facts">Victor 1062A · starts in the run-in groove</p>
+      </div>
+      <a class="go" href="kreisler/"><span class="lamp" aria-hidden="true"></span>Open the faceplate</a>
+    </article>
+
+    <article class="opt">
+      <div class="opt-head"><b>Jazz band</b><span>1922</span></div>
+      <div class="opt-body">
+        <h2>Jazz-Bo’s Carolina Serenaders, “Lonesome Mamma Blues”</h2>
+        <p>An early acoustic jazz fox trot on Cameo, a record the archive itself describes as popping.</p>
+        <div class="readout"><span class="n">1,712</span><span class="u">clicks repaired<br>in 30 s</span></div>
+        <p class="facts">Cameo 232 · matrix 198-C · starts in the run-in groove</p>
+      </div>
+      <a class="go" href="lonesome/"><span class="lamp" aria-hidden="true"></span>Open the faceplate</a>
+    </article>
+  </section>
+
+  <section class="notes">
+    <h2>About these recordings</h2>
+    <p>Both are unrestored transfers from the Internet Archive’s <a href="https://archive.org/details/georgeblood">Great 78 Project</a>, so the crackle is the record’s own. US recordings published before 1926 and compositions published before 1931 are in the public domain.</p>
+    <p>Each clip is 30 seconds at 48 kHz, processed by the real engine at sensitivity 50 % with percussion protection Off. 78s crackle far more than a typical LP, so the meter sits near the top of its scale.</p>
+  </section>
+</div>
+</body>
+</html>

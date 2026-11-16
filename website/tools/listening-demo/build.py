@@ -2,12 +2,17 @@
 that plays a clip as repaired / original (bypass) / clicks only, in sync,
 with the meter and strip chart driven by the engine's real repairs.
 
-  python3 build.py OUT_DIR      # reads OUT_DIR/demo.json (from prepare.py),
-                                # writes OUT_DIR/listening-demo.html
-The page expects the audio next to it in audio/*.mp4.
+  python3 build.py OUT_DIR          # review page: OUT_DIR/listening-demo.html
+  python3 build.py OUT_DIR --site   # secondpressing.com: OUT_DIR/index.html + listen.js
+Reads OUT_DIR/demo.json (from prepare.py). The page expects the audio next
+to it in audio/*.mp4. --site makes a full document that uses the site's own
+fonts and an external script (the site's CSP allows no inline scripts or
+third-party fonts).
 """
 import html as H, json, math, pathlib, sys
-D = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".")
+ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
+SITE = "--site" in sys.argv
+D = pathlib.Path(ARGS[0] if ARGS else ".")
 data = json.loads((D / "demo.json").read_text())
 ROOT = pathlib.Path(__file__).resolve().parents[2]          # website/
 icon = (ROOT / "public" / "assets" / "header-icon.svg").read_text()
@@ -175,9 +180,13 @@ function setGains(ramp = 0.010) {
 async function load() {
   if (loading) return loading;
   ctx = new (window.AudioContext || window.webkitAudioContext)();
+  // Decode offline: some browsers hold decodeAudioData on a context that is
+  // still suspended (no click yet), and AudioBuffers work in any context.
+  const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const dec = Off ? new Off(2, 1, ctx.sampleRate) : ctx;
   $("#msg").textContent = "Loading audio…";
   loading = Promise.all(FILES.map(f => fetch(f).then(r => { if (!r.ok) throw new Error(f); return r.arrayBuffer(); })
-      .then(b => new Promise((ok, err) => ctx.decodeAudioData(b, ok, err)))))
+      .then(b => new Promise((ok, err) => dec.decodeAudioData(b, ok, err)))))
     .then(b => { buffers = b; gains = b.map(() => { const g = ctx.createGain(); g.gain.value = 0; g.connect(ctx.destination); return g; }); $("#msg").textContent = ""; })
     .catch(e => { $("#msg").textContent = "Could not load the audio (" + e.message + ")."; throw e; });
   return loading;
@@ -272,13 +281,37 @@ JUMPS = "".join(f'<button class="jump" type="button" data-jump="{c["t"]}">{mmss(
                 for c in data.get("chapters", []))
 NOTE = f'<li>{data["note"]}</li>' if data.get("note") else ""
 CREDIT = f' Recording: {H.escape(data["credit"])}.' if data.get("credit") and not data.get("private") else ""
-
-html = f'''<title>2ndPressing Listening Demo</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
+ASIDE = f'<aside class="aside">{data["aside"]}</aside>' if data.get("aside") else ""
+EYEBROW = ("Listening demo" if SITE else "Listening demo · prototype") + (f" · {H.escape(data['title'])}" if data.get("title") else "")
+PAGE_TITLE = (f"{H.escape(data['title'])} · " if data.get("title") else "") + "Listen · 2ndPressing"
+BACK = (data.get("back") or {"href": "/", "label": "Home"}) if SITE else None
+SCRIPT_DATA = json.dumps(dict(data, prot=PROT, statusPrefix=f"LATENCY {LAT}    {KHZ} kHz    "))
+FONTS_REMOTE = """<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;600&display=swap">"""
+FONTS_SITE = "".join(
+    f'@font-face {{ font-family: "{fam}"; src: url("/assets/fonts/{f}.woff2") format("woff2"); font-weight: {w}; font-display: swap; }}\n'
+    for fam, f, w in (("IBM Plex Sans Condensed", "IBMPlexSansCondensed-SemiBold", 600),
+                      ("IBM Plex Sans", "IBMPlexSans-Regular", 400), ("IBM Plex Sans", "IBMPlexSans-SemiBold", 600),
+                      ("IBM Plex Mono", "IBMPlexMono-Regular", 400), ("IBM Plex Mono", "IBMPlexMono-Medium", 500)))
+
+HEAD = (f'''<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{PAGE_TITLE}</title>
+<meta name="description" content="Hear 2ndPressing remove clicks: switch between the repaired audio, the original and the removed clicks on a working replica of the plugin.">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <style>
+{FONTS_SITE}''' if SITE else f'''<title>2ndPressing Listening Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+{FONTS_REMOTE}
+<style>''')
+SITEBAR = (f'''<div class="sitebar"><a href="/" class="sb-brand">2<span class="nd">nd</span>Pressing</a><a href="{H.escape(BACK["href"])}" class="sb-back">{H.escape(BACK["label"])}</a></div>''' if SITE else "")
+
+html = f'''{HEAD}
 /* Layout: the faceplate as the hero on a dark "listening room" ground, a
    transport strip under it in the same hardware language, notes below.
    Single dark theme by choice: it's a product-on-a-desk presentation. */
@@ -330,14 +363,24 @@ h1 {{ font: 600 clamp(28px, 4vw, 38px)/1.05 var(--cond); margin: 0; text-wrap: b
 kbd {{ font: 500 12px/1 var(--mono); background: #3A3834; border: 1px solid #55524B; border-bottom-width: 2px; border-radius: 3px; padding: 2px 6px; color: var(--text); }}
 @media (max-width: 520px) {{ .loop {{ margin-left: 0; }} .readout {{ min-width: 0; }} }}
 @media (prefers-reduced-motion: reduce) {{ .key .cap {{ transition: none; }} }}
+.aside {{ margin-top: 6px; background: #2F2C27; border: 1px solid #5A5348; border-left: 3px solid var(--amber); border-radius: 4px; padding: 10px 14px; color: #E6DFD0; font-size: 14.5px; max-width: 68ch; }}
+.aside b {{ color: var(--amber); }}
+.sitebar {{ display: flex; justify-content: space-between; align-items: center; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid #3E3B36; }}
+.sb-brand {{ font: 600 20px/1 var(--cond); color: var(--text); text-decoration: none; }}
+.sb-brand .nd {{ font-size: .6em; vertical-align: .45em; line-height: 0; }}
+.sb-back {{ font: 600 12px/1 var(--cond); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); text-decoration: none; }}
+.sb-back:hover {{ color: var(--text); }}
 </style>
+{"</head><body>" if SITE else ""}
 
 <div class="wrap">
+  {SITEBAR}
   <header class="top">
-    <p class="eyebrow">Listening demo · prototype</p>
+    <p class="eyebrow">{EYEBROW}</p>
     <h1>Hear it on the faceplate</h1>
     <p class="intro">Press play, then switch with the faceplate’s own keys: <b>REPAIRED</b> for the declicked audio, <b>BYPASS</b> for the original, <b>CLICKS</b> to hear only what was removed. All three play in sync, so a key flips the sound mid-phrase. The meter and strip chart follow the engine’s real list of repairs.</p>
     {PRIVATE}
+    {ASIDE}
   </header>
 
   <div class="unit">
@@ -366,7 +409,11 @@ kbd {{ font: 500 12px/1 var(--mono); background: #3A3834; border: 1px solid #555
     <p>The real 2ndPressing engine (ClickNet R2, sensitivity {data["sensitivity"]} %, percussion protection {data["protection"]}) processed this {data["duration"]:.1f} s clip at {KHZ} kHz. Original, repaired and clicks-only were rendered with the same latency compensation, so they line up sample for sample, then encoded identically as AAC. Switching uses a 10 ms crossfade, as the plugin does. The sensitivity knob and protection keys show the settings this clip was processed with; they don’t reprocess audio in the browser.{CREDIT}</p>
   </section>
 </div>
-<script>{JS.replace("__DATA__", json.dumps(dict(data, prot=PROT, statusPrefix=f"LATENCY {LAT}    {KHZ} kHz    ")))}</script>
+{'<script src="listen.js"></script></body></html>' if SITE else "<script>" + JS.replace("__DATA__", SCRIPT_DATA) + "</script>"}
 '''
-(D / "listening-demo.html").write_text(html)
+if SITE:
+    (D / "listen.js").write_text(JS.replace("__DATA__", SCRIPT_DATA))
+    (D / "index.html").write_text(html)
+else:
+    (D / "listening-demo.html").write_text(html)
 print("wrote", len(html), "bytes")
