@@ -3,5 +3,7 @@ secondpressing-site.zip
 public/_pgbackup/
 public/_pginfo/
 public/pinegrow.json
-public/downloads/*.pkg
+public/downloads/**/*.pkg
+public/downloads/**/*.exe
+public/downloads/**/*.msi
 deploy.env

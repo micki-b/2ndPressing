@@ -106,15 +106,15 @@ Setup:
 - `.htaccess` adds `X-Robots-Tag: noindex` for `/beta` and `/downloads`.
 
 Email `https://secondpressing.com/beta/` to testers. The installer itself lives
-in `public/downloads/`. It's git-ignored (17 MB) but included in the upload zip.
+in `public/downloads/macOS/` (with `Windows/` and `rPi/` alongside for later). Installers are git-ignored but `deploy.sh` uploads them.
 
 To publish a new build:
 1. Run `runtime/release/macos/build-release.sh`.
 2. Copy `runtime/target/release-macos/2ndPressing-<version>.pkg` into
-   `public/downloads/`.
+   `public/downloads/macOS/`.
 3. In `beta/index.html`, update the version, file name, size and SHA-256
    (`shasum -a 256 <file>`).
-4. Rebuild the zip and upload. Afterwards, delete the old `.pkg` on the server.
+4. Delete the old `.pkg` locally, then `./deploy.sh` (it removes it from the server too).
 
 ## Editing
 
