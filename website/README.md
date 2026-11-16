@@ -11,8 +11,9 @@ server is in `public/`.
 | `public/.htaccess` | Apache settings: HTTPS + bare-domain redirect, caching, compression, security headers |
 | `public/assets/site.css` | Styles (bump `?v=` in the HTML after editing, so browsers refetch) |
 | `public/assets/fonts/` | IBM Plex subsets (WOFF2, SIL OFL 1.1) |
-| `public/assets/repair.svg` | Hero figure: real engine output; rebuild with `tools/make_figure.py` |
-| `public/assets/og.png`, `apple-touch-icon.png` | Share image and icon; rebuild with `tools/render_images.sh` |
+| `public/assets/cartridge-*.webp`, `header-icon.svg`, `favicon.svg`, `apple-touch-icon.png` | The logo: hero image, header icon, favicon and home-screen icon, from `brand/export.py` |
+| `public/assets/repair.svg` | Strip chart in "How it works": real engine output; rebuild with `tools/make_figure.py` |
+| `public/assets/og.png` | Share image; rebuild with `tools/render_images.sh` |
 
 ## Preview locally
 
@@ -28,11 +29,13 @@ it is served for missing pages at any depth.
 ## Visual editing
 
 Pinegrow (`brew install --cask pinegrow`) edits these files in place:
-*Open project* › `website/public`. Afterwards, upload the changed files,
+*Open project* › `website/public`. Its own files (`_pgbackup/`, `_pginfo/`,
+`pinegrow.json`) stay local: they are git-ignored and left out of the zip and
+`deploy.sh`. Afterwards, upload the changed files,
 or rebuild the zip:
 
 ```sh
-cd website/public && zip -qr -X ../secondpressing-site.zip . -x '*.DS_Store'
+cd website/public && zip -qr -X ../secondpressing-site.zip . -x '*.DS_Store' -x '_pgbackup/*' -x '_pginfo/*' -x 'pinegrow.json'
 ```
 
 ## Publish on Bluehost

@@ -78,6 +78,8 @@ section[id] { scroll-margin-top: 64px; }
   line-height: 1;
 }
 .brand .nd { font-size: .6em; vertical-align: .45em; line-height: 0; }
+a.brand { display: inline-flex; align-items: center; gap: 10px; }
+.brand-icon { width: 36px; height: 36px; flex: none; }
 .brand.compact { font-size: 17px; }
 
 /* ---- Bands (dark strips, like the faceplate's header) ---- */
@@ -161,6 +163,13 @@ h2 { font-size: clamp(30px, 3.6vw, 42px); line-height: 1.08; letter-spacing: -.0
 h1 { font-size: clamp(46px, 6.4vw, 82px); line-height: .98; letter-spacing: -.015em; }
 .lede { font-size: 19px; max-width: 46ch; margin-top: 26px; color: #3A3732; }
 .actions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 34px; }
+
+/* Hero: the 3D logo. */
+.hero-art { margin: 0; }
+.hero-art img { width: 100%; height: auto; display: block; filter: drop-shadow(0 22px 30px rgba(40, 36, 30, .22)); }
+
+/* Strip chart, in "How it works". */
+.how-chart { margin-top: 48px; max-width: 760px; }
 
 .chart {
   margin: 0;

@@ -1,1 +1,5 @@
 secondpressing-site.zip
+# Pinegrow project and backup files (local editing only)
+public/_pgbackup/
+public/_pginfo/
+public/pinegrow.json

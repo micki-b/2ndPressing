@@ -10,4 +10,4 @@
 set -eu
 : "${BH_USER:?set BH_USER}" "${BH_HOST:?set BH_HOST}" "${BH_DIR:?set BH_DIR}"
 cd "$(dirname "$0")"
-rsync -avz --delete --exclude '.DS_Store' public/ "$BH_USER@$BH_HOST:$BH_DIR/"
+rsync -avz --delete --exclude '.DS_Store' --exclude '_pgbackup' --exclude '_pginfo' --exclude 'pinegrow.json' public/ "$BH_USER@$BH_HOST:$BH_DIR/"

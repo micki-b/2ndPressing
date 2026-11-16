@@ -21,6 +21,10 @@ use pressing_plugin::{Monitor, PercussionProtection};
 use crate::audio::{self, DeviceInfo, Route, Session, SessionConfig, Shared};
 use crate::settings::{self, Settings};
 
+/// Window/taskbar icon (the logo's app icon, 256 px straight RGBA, from
+/// `brand/export.py`). The macOS bundle uses `macos/AppIcon.icns` instead.
+const WINDOW_ICON: &[u8] = include_bytes!("../assets/window-icon-256.rgba");
+
 /// Height of the audio-setup strip under the faceplate.
 pub const STRIP_H: f32 = 112.0;
 
@@ -33,6 +37,11 @@ pub fn run() -> Result<(), String> {
     let opts = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("2ndPressing Declicker")
+            .with_icon(Arc::new(egui::IconData {
+                rgba: WINDOW_ICON.to_vec(),
+                width: 256,
+                height: 256,
+            }))
             .with_inner_size(size)
             .with_min_inner_size(size)
             .with_max_inner_size(size)

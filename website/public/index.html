@@ -1,280 +1,334 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>2ndPressing — vinyl click and pop removal</title>
-<meta name="description" content="2ndPressing finds clicks and pops in your LP transfers with a compact neural network, rebuilds only the damaged samples, and leaves everything else bit for bit. Audio Unit, VST3, CLAP and a desktop app.">
-<link rel="canonical" href="https://secondpressing.com/">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://secondpressing.com/">
-<meta property="og:title" content="2ndPressing — more music, fewer clicks">
-<meta property="og:description" content="Neural click detection, surgical repair, everything else untouched. For anyone digitizing an LP collection.">
-<meta property="og:image" content="https://secondpressing.com/assets/og.png">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#3C3A36">
-<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="preload" href="assets/fonts/IBMPlexSansCondensed-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/fonts/IBMPlexSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/site.css?v=1">
-</head>
-<body>
-
-<header class="band top">
-  <div class="wrap top-inner">
-    <a class="brand" href="/" aria-label="2ndPressing home">2<span class="nd">nd</span>Pressing</a>
-    <nav aria-label="Sections">
-      <a href="#how">How it works</a>
-      <a href="#results">Results</a>
-      <a href="#protection">Protection</a>
-      <a href="#formats">Formats</a>
-      <a class="nav-cta" href="#get">Get it</a>
-    </nav>
-  </div>
-</header>
-
-<main>
-
-<section class="hero">
-  <div class="wrap hero-grid">
-    <div class="hero-copy">
-      <p class="legend">Click &amp; pop removal for vinyl transfers</p>
-      <h1>More music.<br>Fewer clicks.</h1>
-      <p class="lede">Give your vinyl transfers a second pressing. A compact neural network finds clicks and pops, then rebuilds each flagged passage from the music on either side. Everything else passes through untouched, bit for bit.</p>
-      <div class="actions">
-        <a class="key primary" href="#get"><span class="lamp" aria-hidden="true"></span>Join the beta</a>
-        <a class="key" href="#results"><span class="lamp" aria-hidden="true"></span>See the measurements</a>
-      </div>
-    </div>
-
-    <figure class="chart">
-      <div class="chart-head">
-        <span>Strip chart</span><span>7.5 ms · 48 kHz</span>
-      </div>
-      <div class="paper">
-        <img src="assets/repair.svg" width="720" height="300" alt="Waveform: a sharp red click spike in the input; the blue repaired trace runs smoothly through the same span and matches the input everywhere else.">
-      </div>
-      <ul class="chart-key">
-        <li><span class="sw sw-red"></span>Input with one click</li>
-        <li><span class="sw sw-ink"></span>2ndPressing output</li>
-        <li><span class="sw sw-amber"></span>Rebuilt: 37 samples, 0.77 ms</li>
-      </ul>
-      <figcaption>A test tone with one injected click, through the real engine. Outside the amber span, every output sample is the input sample.</figcaption>
-    </figure>
-  </div>
-</section>
-
-<section class="band readouts" aria-label="Key measurements">
-  <div class="wrap readout-grid">
-    <div class="readout">
-      <p class="r-label">Clicks found</p>
-      <p class="glass"><span class="num">76.5</span><span class="unit">%</span></p>
-      <p class="r-sub">vs 59.9 % for a classical detector<a class="fn" href="#n1">1</a></p>
-    </div>
-    <div class="readout">
-      <p class="r-label">Clean audio touched</p>
-      <p class="glass"><span class="num">0.030</span><span class="unit">%</span></p>
-      <p class="r-sub">vs 0.131 %, on unseen albums<a class="fn" href="#n1">1</a></p>
-    </div>
-    <div class="readout">
-      <p class="r-label">Speed</p>
-      <p class="glass"><span class="num">43</span><span class="unit">× real time</span></p>
-      <p class="r-sub">2.3 % of one Apple M5 Pro core<a class="fn" href="#n5">5</a></p>
-    </div>
-  </div>
-</section>
-
-<section id="how" class="section">
-  <div class="wrap">
-    <p class="legend">How it works</p>
-    <h2>Find the damage. Rebuild it. Leave the rest alone.</h2>
-    <div class="steps">
-      <article class="step">
-        <p class="step-no">01</p>
-        <h3>Listen</h3>
-        <p>ClickNet, a neural detector of just 20,116 parameters (about 80 KB), reads the audio with 10.7 ms of look-ahead and flags only the samples a click has damaged. It looks for sharpness, not loudness, so a loud drum hit is not a click.</p>
-      </article>
-      <article class="step">
-        <p class="step-no">02</p>
-        <h3>Rebuild</h3>
-        <p>Each flagged span is reconstructed from the music on both sides of it by autoregressive interpolation. The gap is filled with what the groove most likely held, not muted or smeared.</p>
-      </article>
-      <article class="step">
-        <p class="step-no">03</p>
-        <h3>Leave everything else</h3>
-        <p>Samples outside a flagged span pass through bit for bit.<a class="fn" href="#n2">2</a> No noise reduction, no EQ, no smoothing: the recording you came to hear, minus the clicks.</p>
-      </article>
-    </div>
-  </div>
-</section>
-
-<section id="results" class="section alt">
-  <div class="wrap results-grid">
-    <div>
-      <p class="legend">Results</p>
-      <h2>Measured on 24 albums it never trained on</h2>
-      <p class="body">Tested against reference repairs on audio from 24 albums held out of training, ClickNet R2 found more of the clicks while touching less of the music than the project's classical detector.<a class="fn" href="#n1">1</a></p>
-      <div class="sheet" role="region" aria-label="Test results" tabindex="0">
-        <table>
-          <thead>
-            <tr><th scope="col">What matters for your transfer</th><th scope="col">ClickNet R2</th><th scope="col">Classical</th></tr>
-          </thead>
-          <tbody>
-            <tr><th scope="row">Reference clicks found</th><td><strong>76.5 %</strong></td><td>59.9 %</td></tr>
-            <tr><th scope="row">False alarms per minute</th><td><strong>27.5</strong></td><td>49.6</td></tr>
-            <tr><th scope="row">Reference-clean audio touched</th><td><strong>0.030 %</strong></td><td>0.131 %</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="results-side">
-      <h3 class="h-small">Choose your balance<a class="fn" href="#n3">3</a></h3>
-      <div class="balance">
-        <div>
-          <p class="big">8×</p>
-          <p>fewer false alarms at 60 % click detection: 6.0 per minute vs 49.9.</p>
-        </div>
-        <div>
-          <p class="big">+22.4</p>
-          <p>points of detection at 50 false alarms per minute: 82.4 % of clicks found vs 60.0 %.</p>
-        </div>
-      </div>
-
-      <h3 class="h-small">Quiet passages or loud ones<a class="fn" href="#n4">4</a></h3>
-      <div class="bars" role="table" aria-label="Click detection by background loudness">
-        <div class="bars-head" role="row">
-          <span role="columnheader">Background</span>
-          <span role="columnheader"><span class="sw sw-ink"></span>ClickNet R2 <span class="sw sw-grey"></span>Classical</span>
-        </div>
-        <div class="bar-row" role="row">
-          <span class="bar-label" role="rowheader">below −45 dBFS</span>
-          <span class="bar-pair" role="cell"><span class="bar ink w882">88.2 %</span><span class="bar grey w758">75.8 %</span></span>
-        </div>
-        <div class="bar-row" role="row">
-          <span class="bar-label" role="rowheader">−45 to −30</span>
-          <span class="bar-pair" role="cell"><span class="bar ink w875">87.5 %</span><span class="bar grey w730">73.0 %</span></span>
-        </div>
-        <div class="bar-row" role="row">
-          <span class="bar-label" role="rowheader">−30 to −18</span>
-          <span class="bar-pair" role="cell"><span class="bar ink w907">90.7 %</span><span class="bar grey w734">73.4 %</span></span>
-        </div>
-        <div class="bar-row" role="row">
-          <span class="bar-label" role="rowheader">above −18 dBFS</span>
-          <span class="bar-pair" role="cell"><span class="bar ink w905">90.5 %</span><span class="bar grey w739">73.9 %</span></span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="protection" class="section">
-  <div class="wrap protect-grid">
-    <div>
-      <p class="legend">Percussion protection</p>
-      <h2>Hand claps are not clicks</h2>
-      <p class="body">A clap and a click can look alike for a few milliseconds. The difference is rhythm: claps and drums repeat on a beat. With percussion protection on, 2ndPressing looks further ahead, finds the beat grid and leaves those hits alone.</p>
-      <p class="body">Real damage repeats too, but only once per turn of the record. A scratch that comes around exactly once per rotation is still repaired.</p>
-      <ul class="rpm" aria-label="Rotation periods still repaired">
-        <li><span class="rpm-speed">33⅓ rpm</span><span class="rpm-period">1.8 s</span></li>
-        <li><span class="rpm-speed">45 rpm</span><span class="rpm-period">1.333 s</span></li>
-        <li><span class="rpm-speed">78 rpm</span><span class="rpm-period">0.769 s</span></li>
-      </ul>
-    </div>
-    <div class="modes" aria-label="Protection modes">
-      <div class="mode">
-        <span class="lamp" aria-hidden="true"></span>
-        <span class="mode-name">Off</span>
-        <span class="mode-lat">32 ms</span>
-        <p>Lowest latency, for live monitoring.</p>
-      </div>
-      <div class="mode">
-        <span class="lamp" aria-hidden="true"></span>
-        <span class="mode-name">Standard</span>
-        <span class="mode-lat">≈ 1.1 s</span>
-        <p>One second of look-ahead to find the beat.</p>
-      </div>
-      <div class="mode on">
-        <span class="lamp" aria-hidden="true"></span>
-        <span class="mode-name">Extended</span>
-        <span class="mode-lat">≈ 2.1 s</span>
-        <p>Also protects the first beats of a rhythmic passage. The default.</p>
-      </div>
-      <p class="modes-note">Latency is reported to your DAW, which compensates for it. On held-out recordings, Standard protection still found 89.4 % of reference repairs, against 91.0 % with it off.</p>
-    </div>
-  </div>
-</section>
-
-<section id="formats" class="section alt">
-  <div class="wrap">
-    <p class="legend">Formats</p>
-    <h2>In your DAW, or on its own</h2>
-    <div class="formats">
-      <div class="format"><span class="tag">AU</span><h3>Audio Unit</h3><p>Logic Pro, GarageBand and other Audio Unit hosts on the Mac.</p></div>
-      <div class="format"><span class="tag">VST3</span><h3>VST3</h3><p>Most DAWs on Mac and Windows.</p></div>
-      <div class="format"><span class="tag">CLAP</span><h3>CLAP</h3><p>Bitwig, REAPER and other CLAP hosts.</p></div>
-      <div class="format"><span class="tag">APP</span><h3>Desktop app</h3><p>Play a turntable through any audio interface and hear it cleaned live. No DAW needed.</p></div>
-      <div class="format"><span class="tag">CLI</span><h3>Command line</h3><p>Batch-process saved transfers: WAV, AIFF, FLAC and ALAC.</p></div>
-    </div>
-
-    <div class="platforms" role="table" aria-label="Platform status">
-      <div class="plat" role="row"><span class="lamp on-green" aria-hidden="true"></span><span role="cell">macOS, Apple Silicon</span><span class="plat-st" role="cell">beta</span></div>
-      <div class="plat" role="row"><span class="lamp on-amber" aria-hidden="true"></span><span role="cell">macOS, Intel</span><span class="plat-st" role="cell">in testing</span></div>
-      <div class="plat" role="row"><span class="lamp on-amber" aria-hidden="true"></span><span role="cell">Windows</span><span class="plat-st" role="cell">next</span></div>
-      <div class="plat" role="row"><span class="lamp" aria-hidden="true"></span><span role="cell">Linux, Raspberry Pi</span><span class="plat-st" role="cell">planned</span></div>
-    </div>
-    <p class="small">Mono and stereo at 44.1 and 48 kHz. Runs on the CPU; no graphics card needed.</p>
-  </div>
-</section>
-
-<section class="section maker">
-  <div class="wrap narrow">
-    <blockquote>
-      <p>Built by a music lover with an extensively recorded LP collection who happens to be an engineer who strives to build efficient and simple solutions for sensible people.</p>
-    </blockquote>
-  </div>
-</section>
-
-<section id="get" class="band get">
-  <div class="wrap get-inner">
-    <div class="get-card">
-      <div class="get-head">
-        <span class="brand compact">2<span class="nd">nd</span>Pressing</span><span class="get-dim">Declicker · beta</span>
-      </div>
-      <div class="get-body">
-        <h2>Try it on your own records</h2>
-        <p>2ndPressing is in beta on the Mac, with Windows to follow. It is open source under the GPL-3.0; the source code will be published with the first release.</p>
-        <p>To join the beta, send an email and say which computer and audio interface you use.</p>
-        <a class="key primary" href="mailto:hello@secondpressing.com?subject=2ndPressing%20beta"><span class="lamp" aria-hidden="true"></span>hello@secondpressing.com</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="section notes" aria-labelledby="notes-h">
-  <div class="wrap narrow">
-    <h2 id="notes-h" class="h-small">Measurement notes</h2>
-    <ol>
-      <li id="n1">Internal evaluation of ClickNet R2 (threshold 2.75) against the project's classical streaming detector (threshold 4, contrast gate 16), with settings chosen on validation data. 10,690 reference-repaired and 8,680 detected-only events in sampled windows from 24 albums not used in training. “Reference-clean” means samples with no reference label; unlabelled audio can contain genuine clicks. Not a comparison with commercial products.</li>
-      <li id="n2">Within the engine, after latency. File decoding, format conversion and host processing can change how samples are represented.</li>
-      <li id="n3">Interpolated from threshold sweeps; album bootstrap with 2,000 resamples gives a 95 % interval of +19.5 to +28.8 points. Not the default setting.</li>
-      <li id="n4">Synthetic clicks with known positions, by background loudness. Separate from the recorded-click evaluation.</li>
-      <li id="n5">Release build, 20 s of 48 kHz stereo, 512-sample blocks, one thread, protection off.</li>
-    </ol>
-    <p class="small">Results vary by recording.</p>
-  </div>
-</section>
-
-</main>
-
-<footer class="band foot">
-  <div class="wrap foot-inner">
-    <span class="brand compact">2<span class="nd">nd</span>Pressing</span>
-    <span>© 2026 · Open source, GPL-3.0</span>
-    <span>No cookies, no trackers.</span>
-  </div>
-</footer>
-
-</body>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+        <title>2ndPressing — vinyl click and pop removal</title>
+        <meta name="description" content="2ndPressing finds clicks and pops in your LP transfers with a compact neural network, rebuilds only the damaged samples, and leaves everything else bit for bit. Audio Unit, VST3, CLAP and a desktop app.">
+        <link rel="canonical" href="https://secondpressing.com/">
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="https://secondpressing.com/">
+        <meta property="og:title" content="2ndPressing — more music, fewer clicks">
+        <meta property="og:description" content="Neural click detection, surgical repair, everything else untouched. For anyone digitizing an LP collection.">
+        <meta property="og:image" content="https://secondpressing.com/assets/og.png">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="theme-color" content="#3C3A36">
+        <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+        <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+        <link rel="preload" href="assets/fonts/IBMPlexSansCondensed-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="assets/fonts/IBMPlexSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="stylesheet" href="assets/site.css?v=2">
+    </head>
+    <body>
+        <header class="band top">
+            <div class="wrap top-inner">
+                <a class="brand" href="/" aria-label="2ndPressing home"><img class="brand-icon" src="assets/header-icon.svg" alt="" width="36" height="36"><span class="wm">2<span class="nd">nd</span>Pressing</span></a>
+                <nav aria-label="Sections">
+                    <a href="#how">How it works</a>
+                    <a href="#results">Results</a>
+                    <a href="#protection">Protection</a>
+                    <a href="#formats">Formats</a>
+                    <a class="nav-cta" href="#get">Get it</a>
+                </nav>
+            </div>
+        </header>
+        <main>
+            <section class="hero">
+                <div class="wrap hero-grid">
+                    <div class="hero-copy">
+                        <p class="legend">Click &amp; pop removal for vinyl listening and transfers</p>
+                        <h1>More music.<br>Fewer clicks.</h1>
+                        <p class="lede">Give your vinyl transfers a second pressing. A compact neural network finds clicks and pops, then rebuilds each flagged passage from the music on either side. Everything else passes through untouched, bit for bit.</p>
+                        <div class="actions">
+                            <a class="key primary" href="#get"><span class="lamp" aria-hidden="true"></span>Join the beta</a>
+                            <a class="key" href="#results"><span class="lamp" aria-hidden="true"></span>See the measurements</a>
+                        </div>
+                    </div>
+                    <figure class="hero-art">
+                        <img src="assets/cartridge-1600.webp" srcset="assets/cartridge-900.webp 900w, assets/cartridge-1600.webp 1600w" sizes="(max-width: 1000px) 92vw, 560px" width="1600" height="1103" alt="A black 2ndPressing cartridge with an amber stylus on a silver Technics-style headshell, stylus in the groove of a record.">
+                    </figure>
+                </div>
+            </section>
+            <section class="band readouts" aria-label="Key measurements">
+                <div class="wrap readout-grid">
+                    <div class="readout">
+                        <p class="r-label">Clicks found</p>
+                        <p class="glass"><span class="num">76.5</span><span class="unit">%</span></p>
+                        <p class="r-sub">vs 59.9 % for a classical detector<a class="fn" href="#n1">1</a></p>
+                    </div>
+                    <div class="readout">
+                        <p class="r-label">Clean audio touched</p>
+                        <p class="glass"><span class="num">0.030</span><span class="unit">%</span></p>
+                        <p class="r-sub">vs 0.131 %, on unseen albums<a class="fn" href="#n1">1</a></p>
+                    </div>
+                    <div class="readout">
+                        <p class="r-label">Speed</p>
+                        <p class="glass"><span class="num">43</span><span class="unit">× real time</span></p>
+                        <p class="r-sub">2.3 % of one Apple M5 Pro core<a class="fn" href="#n5">5</a></p>
+                    </div>
+                </div>
+            </section>
+            <section id="how" class="section">
+                <div class="wrap">
+                    <p class="legend">How it works</p>
+                    <h2>Find the damage. Rebuild it. Leave the rest alone.</h2>
+                    <div class="steps">
+                        <article class="step">
+                            <p class="step-no">01</p>
+                            <h3>Listen</h3>
+                            <p>ClickNet, a neural detector of just 20,116 parameters (about 80 KB), reads the audio with 10.7 ms of look-ahead and flags only the samples a click has damaged. It looks for sharpness, not loudness, so a loud drum hit is not a click.</p>
+                        </article>
+                        <article class="step">
+                            <p class="step-no">02</p>
+                            <h3>Rebuild</h3>
+                            <p>Each flagged span is reconstructed from the music on both sides of it by autoregressive interpolation. The gap is filled with what the groove most likely held, not muted or smeared.</p>
+                        </article>
+                        <article class="step">
+                            <p class="step-no">03</p>
+                            <h3>Leave everything else</h3>
+                            <p>Samples outside a flagged span pass through bit for bit.<a class="fn" href="#n2">2</a> No noise reduction, no EQ, no smoothing: the recording you came to hear, minus the clicks.</p>
+                        </article>
+                    </div>
+                    <figure class="chart how-chart">
+                        <div class="chart-head">
+                            <span>Strip chart</span>
+                            <span>7.5 ms · 48 kHz</span>
+                        </div>
+                        <div class="paper">
+                            <img src="assets/repair.svg" width="720" height="300" alt="Waveform: a sharp red click spike in the input; the blue repaired trace runs smoothly through the same span and matches the input everywhere else.">
+                        </div>
+                        <ul class="chart-key">
+                            <li>
+                                <span class="sw sw-red"></span>Input with one click
+                            </li>
+                            <li>
+                                <span class="sw sw-ink"></span>2ndPressing output
+                            </li>
+                            <li>
+                                <span class="sw sw-amber"></span>Rebuilt: 37 samples, 0.77 ms
+                            </li>
+                        </ul>
+                        <figcaption>A test tone with one injected click, through the real engine. Outside the amber span, every output sample is the input sample.</figcaption>
+                    </figure>
+                </div>
+            </section>
+            <section id="results" class="section alt">
+                <div class="wrap results-grid">
+                    <div>
+                        <p class="legend">Results</p>
+                        <h2>Measured on 24 albums it never trained on</h2>
+                        <p class="body">Tested against reference repairs on audio from 24 albums held out of training, ClickNet R2 found more of the clicks while touching less of the music than the project's classical detector.<a class="fn" href="#n1">1</a></p>
+                        <div class="sheet" role="region" aria-label="Test results" tabindex="0">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">What matters for your transfer</th>
+                                        <th scope="col">ClickNet R2</th>
+                                        <th scope="col">Classical</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Reference clicks found</th>
+                                        <td><strong>76.5 %</strong></td>
+                                        <td>59.9 %</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">False alarms per minute</th>
+                                        <td><strong>27.5</strong></td>
+                                        <td>49.6</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Reference-clean audio touched</th>
+                                        <td><strong>0.030 %</strong></td>
+                                        <td>0.131 %</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="results-side">
+                        <h3 class="h-small">Choose your balance<a class="fn" href="#n3">3</a></h3>
+                        <div class="balance">
+                            <div>
+                                <p class="big">8×</p>
+                                <p>fewer false alarms at 60 % click detection: 6.0 per minute vs 49.9.</p>
+                            </div>
+                            <div>
+                                <p class="big">+22.4</p>
+                                <p>points of detection at 50 false alarms per minute: 82.4 % of clicks found vs 60.0 %.</p>
+                            </div>
+                        </div>
+                        <h3 class="h-small">Quiet passages or loud ones<a class="fn" href="#n4">4</a></h3>
+                        <div class="bars" role="table" aria-label="Click detection by background loudness">
+                            <div class="bars-head" role="row">
+                                <span role="columnheader">Background</span>
+                                <span role="columnheader"><span class="sw sw-ink"></span>ClickNet R2 <span class="sw sw-grey"></span>Classical</span>
+                            </div>
+                            <div class="bar-row" role="row">
+                                <span class="bar-label" role="rowheader">below −45 dBFS</span>
+                                <span class="bar-pair" role="cell"><span class="bar ink w882">88.2 %</span><span class="bar grey w758">75.8 %</span></span>
+                            </div>
+                            <div class="bar-row" role="row">
+                                <span class="bar-label" role="rowheader">−45 to −30</span>
+                                <span class="bar-pair" role="cell"><span class="bar ink w875">87.5 %</span><span class="bar grey w730">73.0 %</span></span>
+                            </div>
+                            <div class="bar-row" role="row">
+                                <span class="bar-label" role="rowheader">−30 to −18</span>
+                                <span class="bar-pair" role="cell"><span class="bar ink w907">90.7 %</span><span class="bar grey w734">73.4 %</span></span>
+                            </div>
+                            <div class="bar-row" role="row">
+                                <span class="bar-label" role="rowheader">above −18 dBFS</span>
+                                <span class="bar-pair" role="cell"><span class="bar ink w905">90.5 %</span><span class="bar grey w739">73.9 %</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="protection" class="section">
+                <div class="wrap protect-grid">
+                    <div>
+                        <p class="legend">Percussion protection</p>
+                        <h2>Hand claps are not clicks</h2>
+                        <p class="body">A clap and a click can look alike for a few milliseconds. The difference is rhythm: claps and drums repeat on a beat. With percussion protection on, 2ndPressing looks further ahead, finds the beat grid and leaves those hits alone.</p>
+                        <p class="body">Real damage repeats too, but only once per turn of the record. A scratch that comes around exactly once per rotation is still repaired.</p>
+                        <ul class="rpm" aria-label="Rotation periods still repaired">
+                            <li>
+                                <span class="rpm-speed">33⅓ rpm</span>
+                                <span class="rpm-period">1.8 s</span>
+                            </li>
+                            <li>
+                                <span class="rpm-speed">45 rpm</span>
+                                <span class="rpm-period">1.333 s</span>
+                            </li>
+                            <li>
+                                <span class="rpm-speed">78 rpm</span>
+                                <span class="rpm-period">0.769 s</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="modes" aria-label="Protection modes">
+                        <div class="mode">
+                            <span class="lamp" aria-hidden="true"></span>
+                            <span class="mode-name">Off</span>
+                            <span class="mode-lat">32 ms</span>
+                            <p>Lowest latency, for live monitoring.</p>
+                        </div>
+                        <div class="mode">
+                            <span class="lamp" aria-hidden="true"></span>
+                            <span class="mode-name">Standard</span>
+                            <span class="mode-lat">≈ 1.1 s</span>
+                            <p>One second of look-ahead to find the beat.</p>
+                        </div>
+                        <div class="mode on">
+                            <span class="lamp" aria-hidden="true"></span>
+                            <span class="mode-name">Extended</span>
+                            <span class="mode-lat">≈ 2.1 s</span>
+                            <p>Also protects the first beats of a rhythmic passage. The default.</p>
+                        </div>
+                        <p class="modes-note">Latency is reported to your DAW, which compensates for it. On held-out recordings, Standard protection still found 89.4 % of reference repairs, against 91.0 % with it off.</p>
+                    </div>
+                </div>
+            </section>
+            <section id="formats" class="section alt">
+                <div class="wrap">
+                    <p class="legend">Formats</p>
+                    <h2>In your DAW, or on its own</h2>
+                    <div class="formats">
+                        <div class="format">
+                            <span class="tag">AU</span>
+                            <h3>Audio Unit</h3>
+                            <p>Logic Pro, GarageBand and other Audio Unit hosts on the Mac.</p>
+                        </div>
+                        <div class="format">
+                            <span class="tag">VST3</span>
+                            <h3>VST3</h3>
+                            <p>Most DAWs on Mac and Windows.</p>
+                        </div>
+                        <div class="format">
+                            <span class="tag">CLAP</span>
+                            <h3>CLAP</h3>
+                            <p>Bitwig, REAPER and other CLAP hosts.</p>
+                        </div>
+                        <div class="format">
+                            <span class="tag">APP</span>
+                            <h3>Desktop app</h3>
+                            <p>Play a turntable through any audio interface and hear it cleaned live. No DAW needed.</p>
+                        </div>
+                        <div class="format">
+                            <span class="tag">CLI</span>
+                            <h3>Command line</h3>
+                            <p>Batch-process saved transfers: WAV, AIFF, FLAC and ALAC.</p>
+                        </div>
+                    </div>
+                    <div class="platforms" role="table" aria-label="Platform status">
+                        <div class="plat" role="row">
+                            <span class="lamp on-green" aria-hidden="true"></span>
+                            <span role="cell">macOS, Apple Silicon</span>
+                            <span class="plat-st" role="cell">beta</span>
+                        </div>
+                        <div class="plat" role="row">
+                            <span class="lamp on-amber" aria-hidden="true"></span>
+                            <span role="cell">macOS, Intel</span>
+                            <span class="plat-st" role="cell">in testing</span>
+                        </div>
+                        <div class="plat" role="row">
+                            <span class="lamp on-amber" aria-hidden="true"></span>
+                            <span role="cell">Windows</span>
+                            <span class="plat-st" role="cell">next</span>
+                        </div>
+                        <div class="plat" role="row">
+                            <span class="lamp" aria-hidden="true"></span>
+                            <span role="cell">Linux, Raspberry Pi</span>
+                            <span class="plat-st" role="cell">planned</span>
+                        </div>
+                    </div>
+                    <p class="small">Mono and stereo at 44.1 and 48 kHz. Runs on the CPU; no graphics card needed.</p>
+                </div>
+            </section>
+            <section class="section maker">
+                <div class="wrap narrow">
+                    <blockquote>
+                        <p>Built by a music lover with an extensively recorded LP collection who strives to build efficient and simple solutions for sensible people.</p>
+                    </blockquote>
+                </div>
+            </section>
+            <section id="get" class="band get">
+                <div class="wrap get-inner">
+                    <div class="get-card">
+                        <div class="get-head">
+                            <span class="brand compact">2<span class="nd">nd</span>Pressing</span>
+                            <span class="get-dim">Declicker · beta</span>
+                        </div>
+                        <div class="get-body">
+                            <h2>Try it on your own records</h2>
+                            <p>2ndPressing is in beta on the Mac, with Windows to follow. It is open source under the GPL-3.0; the source code will be published with the first release.</p>
+                            <p>To join the beta, send an email and say which computer and audio interface you use.</p>
+                            <a class="key primary" href="mailto:hello@secondpressing.com?subject=2ndPressing%20beta"><span class="lamp" aria-hidden="true"></span>hello@secondpressing.com</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section class="section notes" aria-labelledby="notes-h">
+                <div class="wrap narrow">
+                    <h2 id="notes-h" class="h-small">Measurement notes</h2>
+                    <ol>
+                        <li id="n1">Internal evaluation of ClickNet R2 (threshold 2.75) against the project's classical streaming detector (threshold 4, contrast gate 16), with settings chosen on validation data. 10,690 reference-repaired and 8,680 detected-only events in sampled windows from 24 albums not used in training. “Reference-clean” means samples with no reference label; unlabelled audio can contain genuine clicks. Not a comparison with commercial products.</li>
+                        <li id="n2">Within the engine, after latency. File decoding, format conversion and host processing can change how samples are represented.</li>
+                        <li id="n3">Interpolated from threshold sweeps; album bootstrap with 2,000 resamples gives a 95 % interval of +19.5 to +28.8 points. Not the default setting.</li>
+                        <li id="n4">Synthetic clicks with known positions, by background loudness. Separate from the recorded-click evaluation.</li>
+                        <li id="n5">Release build, 20 s of 48 kHz stereo, 512-sample blocks, one thread, protection off.</li>
+                    </ol>
+                    <p class="small">Results vary by recording.</p>
+                </div>
+            </section>
+        </main>
+        <footer class="band foot">
+            <div class="wrap foot-inner">
+                <span class="brand compact">2<span class="nd">nd</span>Pressing</span>
+                <span>© 2026 Micki Braun · Open source, GPL-3.0</span>
+                <span>No cookies, no trackers, no "audiophile" BS.</span>
+            </div>
+        </footer>
+    </body>
 </html>

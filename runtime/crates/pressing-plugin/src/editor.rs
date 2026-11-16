@@ -1,7 +1,8 @@
 //! Custom plugin window: the "Instrument" faceplate (design direction B).
 //!
 //! A warm grey panel in the manner of 1970s laboratory test gear, painted
-//! directly with egui at its design size [`WIDTH`] x [`HEIGHT`]:
+//! directly with egui at its design size [`WIDTH`] x [`HEIGHT`]. The header
+//! band carries the logo's cartridge icon (from `brand/export.py`):
 //! - Sensitivity: amber readout (percent, plus the internal threshold in
 //!   small print) above a knob with 21 detents (5 % steps). Drag vertically or
 //!   scroll to change it; double-click returns to 50 %.
@@ -24,8 +25,8 @@ use std::sync::Arc;
 use nih_plug::prelude::*;
 use nih_plug_egui::egui::text::{LayoutJob, TextFormat};
 use nih_plug_egui::egui::{
-    self, Align2, Color32, CornerRadius, CursorIcon, FontData, FontDefinitions, FontFamily, FontId,
-    Mesh, Pos2, Rect, Sense, Shape, Stroke, StrokeKind, Vec2,
+    self, Align2, Color32, ColorImage, CornerRadius, CursorIcon, FontData, FontDefinitions, FontFamily,
+    FontId, Mesh, Pos2, Rect, Sense, Shape, Stroke, StrokeKind, TextureHandle, TextureOptions, Vec2,
 };
 use nih_plug_egui::{create_egui_editor, EguiState};
 
@@ -294,9 +295,16 @@ impl Panel {
     }
 }
 
+/// The logo's cartridge (front view, no lettering) for the header band:
+/// straight RGBA, `BAND_ICON_PX` square, exported by `brand/export.py`.
+const BAND_ICON: &[u8] = include_bytes!("../assets/brand/cartridge-plain-102.rgba");
+const BAND_ICON_PX: usize = 102;
+
 /// GUI-thread state: the meter and the knob gesture.
 #[derive(Default)]
 struct EditorState {
+    /// Header-band cartridge icon (uploaded on first draw).
+    icon: Option<TextureHandle>,
     meter: Meter,
     /// Showing the info screen instead of the controls.
     info: bool,
@@ -410,6 +418,23 @@ pub fn brand(p: &egui::Painter, left_bottom: Pos2, size: f32, color: Color32) ->
     size.x
 }
 
+/// Draw the logo's cartridge icon (front view) into `rect`.
+fn band_icon(ui: &egui::Ui, pt: &egui::Painter, st: &mut EditorState, rect: Rect) {
+    let tex = st.icon.get_or_insert_with(|| {
+        ui.ctx().load_texture(
+            "band-icon",
+            ColorImage::from_rgba_unmultiplied([BAND_ICON_PX, BAND_ICON_PX], BAND_ICON),
+            TextureOptions::LINEAR,
+        )
+    });
+    pt.image(
+        tex.id(),
+        rect,
+        Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0)),
+        Color32::WHITE,
+    );
+}
+
 /// Vertical gradient rectangle.
 pub fn vgrad(p: &egui::Painter, r: Rect, top: Color32, bot: Color32) {
     let mut m = Mesh::default();
@@ -474,9 +499,10 @@ impl Faceplate {
             return;
         }
         pt.rect_filled(self.r(0.0, 0.0, WIDTH as f32, 54.0), 0.0, BAND);
-        let brand_w = brand(pt, self.p(26.0, 38.0), 18.0, BAND_TEXT);
+        band_icon(ui, pt, st, self.r(18.0, 9.0, 36.0, 36.0));
+        let brand_w = brand(pt, self.p(60.0, 38.0), 18.0, BAND_TEXT);
         pt.text(
-            self.p(26.0 + brand_w + 8.0, 38.0),
+            self.p(60.0 + brand_w + 8.0, 38.0),
             Align2::LEFT_BOTTOM,
             "DECLICKER",
             font(COND, 18.0),
@@ -551,10 +577,11 @@ impl Faceplate {
             .clone();
         // Band: wordmark, section label, back key.
         pt.rect_filled(self.r(0.0, 0.0, WIDTH as f32, 46.0), 0.0, BAND);
-        let bw = brand(pt, self.p(22.0, 33.0), 17.0, BAND_TEXT);
+        band_icon(ui, pt, st, self.r(16.0, 7.0, 32.0, 32.0));
+        let bw = brand(pt, self.p(54.0, 33.0), 17.0, BAND_TEXT);
         let dw = pt
             .text(
-                self.p(22.0 + bw + 8.0, 33.0),
+                self.p(54.0 + bw + 8.0, 33.0),
                 Align2::LEFT_BOTTOM,
                 "DECLICKER",
                 font(COND, 17.0),
@@ -562,7 +589,7 @@ impl Faceplate {
             )
             .width();
         pt.text(
-            self.p(22.0 + bw + 8.0 + dw + 12.0, 31.0),
+            self.p(54.0 + bw + 8.0 + dw + 12.0, 31.0),
             Align2::LEFT_BOTTOM,
             &doc.section_label,
             font(MONO_M, 10.0),
@@ -1125,6 +1152,13 @@ mod tests {
         let p = PressingParams::new(2.75);
         assert_eq!(p.sensitivity.default_plain_value(), KNOB_RESET);
         assert!((sensitivity_to_threshold(KNOB_RESET, 2.75) - 2.75).abs() < 1e-6);
+    }
+
+    #[test]
+    fn band_icon_has_the_right_size() {
+        assert_eq!(BAND_ICON.len(), BAND_ICON_PX * BAND_ICON_PX * 4);
+        // Not blank: the cartridge is opaque somewhere.
+        assert!(BAND_ICON.chunks(4).any(|p| p[3] == 255));
     }
 
     #[test]
