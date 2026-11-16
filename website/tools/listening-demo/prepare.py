@@ -12,8 +12,8 @@ Run from the repo's tools/ directory (numpy + soundfile; macOS afconvert):
       [--private]
 
 All three versions go through the same latency compensation, so they line
-up sample for sample; they are encoded identically. Settings: the engine
-defaults (sensitivity 50 %, percussion protection Extended).
+up sample for sample; they are encoded identically. Settings: sensitivity
+50 % (the engine default) and --protection (default extended).
 """
 import argparse, json, pathlib, re, subprocess, tempfile
 import numpy as np
@@ -28,16 +28,19 @@ ap.add_argument("--credit", default="")
 ap.add_argument("--chapter", action="append", default=[], help='"SECONDS=label"')
 ap.add_argument("--note", default="", help="extra listening note (HTML allowed)")
 ap.add_argument("--private", action="store_true", help="show the private-prototype banner")
+ap.add_argument("--protection", choices=["off", "standard", "extended"], default="extended",
+                help="percussion protection used for the clip (default extended)")
 a = ap.parse_args()
 out = pathlib.Path(a.out); (out / "audio").mkdir(parents=True, exist_ok=True)
 
 with tempfile.TemporaryDirectory() as d:
     d = pathlib.Path(d)
-    rep = subprocess.run([str(CLI), "declick", a.input, str(d / "repaired.wav"), "--report"],
+    prot = ["--protection", a.protection]
+    rep = subprocess.run([str(CLI), "declick", a.input, str(d / "repaired.wav"), "--report"] + prot,
                          check=True, capture_output=True, text=True)
     report = rep.stdout + rep.stderr
     for mode, name in (("clicks-only", "clicks"), ("bypass", "original")):
-        subprocess.run([str(CLI), "declick", a.input, str(d / f"{name}.wav"), "--mode", mode],
+        subprocess.run([str(CLI), "declick", a.input, str(d / f"{name}.wav"), "--mode", mode] + prot,
                        check=True, capture_output=True)
     for name in ("original", "repaired", "clicks"):
         subprocess.run(["afconvert", "-f", "mp4f", "-d", "aac", "-b", "256000", "-q", "127", "-s", "3",
