@@ -66,8 +66,7 @@ hosted at **Bluehost**.
    - Turn on *Settings › Show hidden files*, so `.htaccess` is visible.
    - Upload everything **inside** `public/`, keeping the `assets/` folder
      structure.
-   - Alternatively, enable SSH and run `./deploy.sh` (see the comments in the
-     script).
+   - Alternatively, use `./deploy.sh` (see "Sync with deploy.sh" below).
 4. **Turn on SSL.** In *Security › SSL*, enable the free certificate for
    `secondpressing.com`. It is issued once the DNS points at Bluehost.
    - `.htaccess` sends every visitor to `https://secondpressing.com`.
@@ -81,6 +80,24 @@ hosted at **Bluehost**.
      land on `https://secondpressing.com/`.
    - `/nothing-here` shows the 404 page.
    - Pasting the URL into Messages or Slack shows the share image.
+
+## Sync with deploy.sh
+
+`./deploy.sh` mirrors `public/` to the server over SSH (rsync). It uploads only
+the files that changed and deletes server files that no longer exist locally.
+It never touches Pinegrow's files, `cgi-bin` or `.well-known`.
+
+```sh
+DRYRUN=1 ./deploy.sh   # preview: list what would change
+./deploy.sh            # sync
+```
+
+Setup:
+- The settings live in `deploy.env` (git-ignored): `BH_HOST` and `BH_DIR`.
+- The key is `~/.ssh/id_ed25519_bluehost_secondpressing`.
+- `~/.ssh/config` has a `secondpressing` entry pointing at that key.
+- In Bluehost, SSH must be on and the public key authorized: cPanel ›
+  SSH Access › Manage SSH Keys.
 
 ## Beta download page
 

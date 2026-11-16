@@ -1,13 +1,26 @@
 #!/bin/sh
-# Upload public/ to Bluehost over SSH (optional; the File Manager works too).
-# One-time: enable SSH in Bluehost (Advanced > SSH Access) and note your
-# username, server host name and the domain's document root folder.
+# Mirror website/public/ to Bluehost over SSH (rsync: uploads only changes,
+# deletes files that no longer exist locally).
 #
-#   BH_USER=youruser BH_HOST=yourserver.bluehost.com BH_DIR=public_html/secondpressing.com ./deploy.sh
+#   ./deploy.sh            # sync
+#   DRYRUN=1 ./deploy.sh   # show what would change, change nothing
 #
-# --delete removes files on the server that are no longer in public/, so
-# BH_DIR must be this site's own folder, never a parent shared with other sites.
+# Settings come from deploy.env next to this script (git-ignored):
+#   BH_HOST=secondpressing          # an ~/.ssh/config Host alias, or user@server
+#   BH_DIR=public_html/website_...  # the site's document root on the server
+#
+# --delete removes files on the server that are not in public/, so BH_DIR
+# must be this site's own folder, never a parent shared with other sites.
 set -eu
-: "${BH_USER:?set BH_USER}" "${BH_HOST:?set BH_HOST}" "${BH_DIR:?set BH_DIR}"
 cd "$(dirname "$0")"
-rsync -avz --delete --exclude '.DS_Store' --exclude '_pgbackup' --exclude '_pginfo' --exclude 'pinegrow.json' public/ "$BH_USER@$BH_HOST:$BH_DIR/"
+[ -f deploy.env ] && . ./deploy.env
+: "${BH_HOST:?set BH_HOST in deploy.env}" "${BH_DIR:?set BH_DIR in deploy.env}"
+case "$BH_DIR" in
+  ""|"/"|public_html|public_html/|~|"~/") echo "Refusing to sync into '$BH_DIR' (must be the site's own folder)"; exit 1;;
+esac
+DRY=""
+[ "${DRYRUN:-0}" = "1" ] && DRY="--dry-run" && echo "== Dry run: nothing will change on the server"
+rsync -rlptz --delete --itemize-changes $DRY \
+  --exclude '.DS_Store' --exclude '_pgbackup' --exclude '_pginfo' --exclude 'pinegrow.json' \
+  --exclude 'cgi-bin' --exclude '.well-known' \
+  public/ "$BH_HOST:$BH_DIR/"

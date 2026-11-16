@@ -4,3 +4,4 @@ public/_pgbackup/
 public/_pginfo/
 public/pinegrow.json
 public/downloads/*.pkg
+deploy.env
