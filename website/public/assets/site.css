@@ -164,13 +164,6 @@ h1 { font-size: clamp(46px, 6.4vw, 82px); line-height: .98; letter-spacing: -.01
 .lede { font-size: 19px; max-width: 46ch; margin-top: 26px; color: #3A3732; }
 .actions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 34px; }
 
-/* Hero: the 3D logo. */
-.hero-art { margin: 0; }
-.hero-art img { width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid #2A2825; box-shadow: 0 18px 40px rgba(40, 36, 30, .28); }
-
-/* Strip chart, in "How it works". */
-.how-chart { margin-top: 48px; max-width: 760px; }
-
 .chart {
   margin: 0;
   background: linear-gradient(#DDD8CC, #CBC5B7);

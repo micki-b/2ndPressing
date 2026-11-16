@@ -257,6 +257,15 @@ def full_record(cam, S, vb, uid):
         return x0 - w*m <= q[0] <= x0 + w*(1+m) and y0 - h*m <= q[1] <= y0 + h*(1+m)
     out = [f'<rect x="{x0:.1f}" y="{y0:.1f}" width="{w:.1f}" height="{h:.1f}" fill="url(#{uid}-rec)"/>']
     near = cam.cs((0, 0, 0))[2]
+    GLARE_T, GLARE_W = 0.98, 0.12  # band angle (rad, from the spindle) and half-width
+    def glare(t):
+        d = (t - GLARE_T) / GLARE_W
+        return math.exp(-d * d)
+    # Soft sheen along the band: a broad blurred streak on the surface.
+    q1 = cam.proj((cxr + 95 * math.cos(GLARE_T), 0, 95 * math.sin(GLARE_T)), S)
+    q2 = cam.proj((cxr + 330 * math.cos(GLARE_T), 0, 330 * math.sin(GLARE_T)), S)
+    out.append(f'<line x1="{q1[0]:.1f}" y1="{q1[1]:.1f}" x2="{q2[0]:.1f}" y2="{q2[1]:.1f}" stroke="#EDE6D6" '
+               f'stroke-opacity=".24" stroke-width="{w*.12:.1f}" stroke-linecap="round" filter="url(#{uid}-glow)"/>')
     R, k = 20.0, 0
     while R < 560:
         k += 1
@@ -269,12 +278,12 @@ def full_record(cam, S, vb, uid):
                 chunk = run[i:i + 10]
                 if len(chunk) < 2:
                     continue
-                spec = sum(c[1] for c in chunk) / len(chunk)
+                spec = sum(c[1] for c in chunk) / len(chunk) + .9 * sum(c[3] for c in chunk) / len(chunk)
                 fade = min(1.0, near / max(chunk[0][2], 1.0)) ** .9
                 op = ((.03 if gap else .24) + .7 * spec) * fade
                 if op < .025:
                     continue
-                pts = " ".join(f"{q[0]:.1f},{q[1]:.1f}" for q, _, _ in chunk)
+                pts = " ".join(f"{q[0]:.1f},{q[1]:.1f}" for q, _, _, _ in chunk)
                 out.append(f'<polyline points="{pts}" fill="none" stroke="#A39F95" stroke-opacity="{min(op, .95):.3f}" stroke-width="{.3 + .4*spec:.2f}"/>')
         for i in range(n + 1):
             t = -1.25 + 2.85 * i / n
@@ -287,7 +296,7 @@ def full_record(cam, S, vb, uid):
             v = norm(sub(cam.pos, p)); hv = norm(add(LIGHT, v))
             radial = (math.cos(t), 0, math.sin(t))
             nrm = norm(add((0, 1, 0), mul(radial, .35 if k % 2 else -.35)))
-            run.append((q, max(0.0, dot(nrm, hv)) ** 60, zc))
+            run.append((q, max(0.0, dot(nrm, hv)) ** 60, zc, glare(t)))
         flush(run)
     return out
 
@@ -331,6 +340,8 @@ def render(fin, cam, S=400.0, pad=0.08, focus=None, aspect=None, uid="v", groove
 <filter id="{uid}-blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="{vb[2]*.012:.2f}"/></filter>
 <linearGradient id="{uid}-gx" x1="0" y1="0" x2="1" y2="0"><stop offset=".86" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
 <linearGradient id="{uid}-gy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".16" stop-color="#fff"/></linearGradient>
+<filter id="{uid}-glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="{vb[2]*.025:.2f}"/></filter>
+<filter id="{uid}-soft" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="{vb[2]*.004:.2f}"/></filter>
 <linearGradient id="{uid}-rec" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#24221F"/><stop offset="1" stop-color="#121110"/></linearGradient>
 <mask id="{uid}-ex"><rect x="{vb[0]:.1f}" y="{vb[1]:.1f}" width="{vb[2]:.1f}" height="{vb[3]:.1f}" fill="url(#{uid}-gx)"/></mask>
 <mask id="{uid}-ey"><rect x="{vb[0]:.1f}" y="{vb[1]:.1f}" width="{vb[2]:.1f}" height="{vb[3]:.1f}" fill="url(#{uid}-gy)"/></mask>
@@ -386,6 +397,24 @@ def render(fin, cam, S=400.0, pad=0.08, focus=None, aspect=None, uid="v", groove
                 g.append(f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" stroke="#8A867D" stroke-opacity="{op:.2f}" stroke-width="{.35 + .5*s:.2f}"/>') if op > .12 else None
     g.append('</g>')
     out += [x for x in g if x]
+    if full:
+        refl = []
+        for f in faces:
+            if max(p[2] for p in f.pts) > 42:  # cartridge and headshell only
+                continue
+            mp = [(p[0], -p[1], p[2]) for p in f.pts]
+            mn = (f.n[0], -f.n[1], f.n[2])
+            c = centroid(mp)
+            if dot(mn, sub(cam.pos, c)) <= 0:
+                continue
+            col = shade(f, cam)
+            refl.append((cam.cs(c)[2], mp, '#%02x%02x%02x' % col))
+        refl.sort(key=lambda t: -t[0])
+        out.append(f'<g opacity=".16" filter="url(#{uid}-soft)">')
+        for _, mp, col in refl:
+            q = [cam.proj(p, S) for p in mp]
+            out.append('<polygon points="' + " ".join(f"{a:.1f},{b:.1f}" for a, b in q) + f'" fill="{col}"/>')
+        out.append('</g>')
     # Contact shadow.
     sh = [cam.proj(p, S) for p in [(-10, 0, 0), (10, 0, 0), (10, 0, 28), (-10, 0, 28)]]
     out.append('<polygon points="' + " ".join(f"{a:.1f},{b:.1f}" for a, b in sh) + f'" fill="#000" fill-opacity=".55" filter="url(#{uid}-blur)"/>')
@@ -397,6 +426,11 @@ def render(fin, cam, S=400.0, pad=0.08, focus=None, aspect=None, uid="v", groove
         out.append('<polygon points="' + " ".join(f"{a:.1f},{b:.1f}" for a, b in pts) + f'" fill="{hexc}"{stroke}/>')
         if f.decal == "name":
             out.append(decal_svg(f, cam, fin, S))
+    if full:
+        # Light catching the headshell's front and outer top edges.
+        edge = [cam.proj(p, S) for p in [(-9.3, 20.2, -1.5), (9.3, 20.2, -1.5), (10.5, 20.2, -0.3), (10.5, 20.2, 29), (5.6, 20.2, 40.2)]]
+        out.append('<polyline points="' + " ".join(f"{a:.1f},{b:.1f}" for a, b in edge)
+                   + '" fill="none" stroke="#F4F1EA" stroke-opacity=".55" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>')
     out.append('</g></g></svg>')  # close the edge fades
     return "\n".join(out)
 

@@ -17,7 +17,7 @@
         <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
         <link rel="preload" href="assets/fonts/IBMPlexSansCondensed-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
         <link rel="preload" href="assets/fonts/IBMPlexSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
-        <link rel="stylesheet" href="assets/site.css?v=3">
+        <link rel="stylesheet" href="assets/site.css?v=4">
     </head>
     <body>
         <header class="band top">
@@ -44,8 +44,26 @@
                             <a class="key" href="#results"><span class="lamp" aria-hidden="true"></span>See the measurements</a>
                         </div>
                     </div>
-                    <figure class="hero-art">
-                        <img src="assets/cartridge-1600.webp" srcset="assets/cartridge-900.webp 900w, assets/cartridge-1600.webp 1600w" sizes="(max-width: 1000px) 92vw, 560px" width="1600" height="1103" alt="A black 2ndPressing cartridge with an amber stylus on a silver Technics-style headshell, stylus in the groove of a record.">
+                    <figure class="chart">
+                        <div class="chart-head">
+                            <span>Strip chart</span>
+                            <span>7.5 ms · 48 kHz</span>
+                        </div>
+                        <div class="paper">
+                            <img src="assets/repair.svg" width="720" height="300" alt="Waveform: a sharp red click spike in the input; the blue repaired trace runs smoothly through the same span and matches the input everywhere else.">
+                        </div>
+                        <ul class="chart-key">
+                            <li>
+                                <span class="sw sw-red"></span>Input with one click
+                            </li>
+                            <li>
+                                <span class="sw sw-ink"></span>2ndPressing output
+                            </li>
+                            <li>
+                                <span class="sw sw-amber"></span>Rebuilt: 37 samples, 0.77 ms
+                            </li>
+                        </ul>
+                        <figcaption>A test tone with one injected click, through the real engine. Outside the amber span, every output sample is the input sample.</figcaption>
                     </figure>
                 </div>
             </section>
@@ -89,27 +107,6 @@
                             <p>Samples outside a flagged span pass through bit for bit.<a class="fn" href="#n2">2</a> No noise reduction, no EQ, no smoothing: the recording you came to hear, minus the clicks.</p>
                         </article>
                     </div>
-                    <figure class="chart how-chart">
-                        <div class="chart-head">
-                            <span>Strip chart</span>
-                            <span>7.5 ms · 48 kHz</span>
-                        </div>
-                        <div class="paper">
-                            <img src="assets/repair.svg" width="720" height="300" alt="Waveform: a sharp red click spike in the input; the blue repaired trace runs smoothly through the same span and matches the input everywhere else.">
-                        </div>
-                        <ul class="chart-key">
-                            <li>
-                                <span class="sw sw-red"></span>Input with one click
-                            </li>
-                            <li>
-                                <span class="sw sw-ink"></span>2ndPressing output
-                            </li>
-                            <li>
-                                <span class="sw sw-amber"></span>Rebuilt: 37 samples, 0.77 ms
-                            </li>
-                        </ul>
-                        <figcaption>A test tone with one injected click, through the real engine. Outside the amber span, every output sample is the input sample.</figcaption>
-                    </figure>
                 </div>
             </section>
             <section id="results" class="section alt">

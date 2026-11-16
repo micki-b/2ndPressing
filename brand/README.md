@@ -4,7 +4,7 @@ The logo is a black moving-magnet cartridge with an amber stylus, on a
 Technics SL-1200-style silver headshell and arm. It is a 3D model at true
 scale (millimetres), rendered to vector SVG with true perspective:
 
-- **Large logo** (website hero, installer, about box): view V2, three-quarter
+- **Large logo** (installer, about box, print; not used on the website): view V2, three-quarter
   from the front right, 20° above the record, with grooves.
 - **Icon** (app icon, favicon): the same model seen straight on, with "2nd"
   on the cartridge front.

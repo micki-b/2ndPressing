@@ -11,8 +11,8 @@ server is in `public/`.
 | `public/.htaccess` | Apache settings: HTTPS + bare-domain redirect, caching, compression, security headers |
 | `public/assets/site.css` | Styles (bump `?v=` in the HTML after editing, so browsers refetch) |
 | `public/assets/fonts/` | IBM Plex subsets (WOFF2, SIL OFL 1.1) |
-| `public/assets/cartridge-*.webp`, `header-icon.svg`, `favicon.svg`, `apple-touch-icon.png` | The logo: hero image, header icon, favicon and home-screen icon, from `brand/export.py` |
-| `public/assets/repair.svg` | Strip chart in "How it works": real engine output; rebuild with `tools/make_figure.py` |
+| `public/assets/header-icon.svg`, `favicon.svg`, `apple-touch-icon.png` | The logo's cartridge icon: header icon, favicon and home-screen icon, from `brand/export.py` |
+| `public/assets/repair.svg` | Hero strip chart: real engine output; rebuild with `tools/make_figure.py` |
 | `public/assets/og.png` | Share image; rebuild with `tools/render_images.sh` |
 
 ## Preview locally

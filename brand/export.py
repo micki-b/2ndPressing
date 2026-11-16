@@ -5,7 +5,7 @@ Run from anywhere (needs Google Chrome for rasterising):
 
 Writes:
   brand/out/                      master files (SVG, 2400 px PNG, 1024 px app icon, AppIcon.icns)
-  website/public/assets/          hero WebP, header icon, favicon, apple-touch-icon
+  website/public/assets/          header icon, favicon, apple-touch-icon
   runtime/crates/pressing-plugin/assets/brand/   band icon as raw RGBA (faceplate header)
   runtime/crates/pressing-app/assets/            window icon as raw RGBA
   runtime/crates/pressing-app/macos/AppIcon.icns
@@ -108,7 +108,7 @@ def main():
     (OUT / "app-icon.svg").write_text(app_icon(icon))
     (OUT / "app-icon-full-bleed.svg").write_text(app_icon(icon, full_bleed=True))
 
-    big = raster(OUT / "2ndpressing-cartridge.svg", OUT / "2ndpressing-cartridge-2400.png", 2400, round(2400 / 1.45))
+    raster(OUT / "2ndpressing-cartridge.svg", OUT / "2ndpressing-cartridge-2400.png", 2400, round(2400 / 1.45))
     appimg = raster(OUT / "app-icon.svg", OUT / "app-icon-1024.png", 1024, 1024)
     bleed = raster(OUT / "app-icon-full-bleed.svg", OUT / "app-icon-full-bleed-1024.png", 1024, 1024)
     plainimg = raster(OUT / "icon-front-plain.svg", OUT / "icon-front-plain-1024.png", 1024, 1024)
@@ -123,9 +123,7 @@ def main():
         subprocess.run(["iconutil", "-c", "icns", str(iset), "-o", str(OUT / "AppIcon.icns")], check=True)
     shutil.copy(OUT / "AppIcon.icns", APP / "macos" / "AppIcon.icns")
 
-    # 3. Website.
-    for w in (900, 1600):
-        big.resize((w, round(w / 1.45)), Image.LANCZOS).save(WEB / f"cartridge-{w}.webp", quality=86, method=6)
+    # 3. Website (icons only; the large logo is not used on the site).
     (WEB / "header-icon.svg").write_text(plain)
     (WEB / "favicon.svg").write_text(app_icon(icon))
     bleed.resize((180, 180), Image.LANCZOS).convert("RGB").save(WEB / "apple-touch-icon.png")
