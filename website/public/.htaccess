@@ -1,0 +1,63 @@
+# secondpressing.com — Apache settings for Bluehost shared hosting.
+
+Options -Indexes
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
+
+# One canonical address: https://secondpressing.com (no www).
+# Needs the free SSL certificate to be active in Bluehost first; if the site
+# shows a certificate warning, wait for SSL to finish provisioning.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on [OR]
+  RewriteCond %{HTTP_HOST} ^www\. [NC]
+  RewriteRule ^ https://secondpressing.com%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+AddType font/woff2 .woff2
+AddType application/octet-stream .pkg
+AddType audio/mp4 .mp4
+
+# Installers download as files; the beta page and downloads stay out of search.
+<FilesMatch "\.(pkg|exe|msi|zip)$">
+  <IfModule mod_headers.c>
+    Header set Content-Disposition "attachment"
+  </IfModule>
+</FilesMatch>
+# The listening demo (/listen/) runs the site's own script and uses inline
+# styles in its faceplate drawing; everything still comes from this site only.
+<IfModule mod_headers.c>
+  <If "%{REQUEST_URI} =~ m#^/listen(/|$)#">
+    Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'self'"
+  </If>
+</IfModule>
+<IfModule mod_headers.c>
+  <If "%{REQUEST_URI} =~ m#^/(beta|downloads)(/|$)#">
+    Header always set X-Robots-Tag "noindex, nofollow"
+  </If>
+</IfModule>
+AddType image/svg+xml .svg
+AddDefaultCharset utf-8
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain image/svg+xml application/xml
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 hour"
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType application/octet-stream "access plus 1 day"
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'self'"
+</IfModule>

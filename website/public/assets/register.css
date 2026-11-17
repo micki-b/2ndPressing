@@ -1,0 +1,29 @@
+/* Free registration pages (/register/): form and the activation code. */
+.reg-card { max-width: 640px; width: 100%; }
+.reg-form { display: grid; gap: 14px; width: 100%; max-width: 52ch; margin-top: 4px; }
+.reg-names { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.reg-field { display: grid; gap: 8px; min-width: 0; }
+.reg-opt { text-transform: none; letter-spacing: 0; font: 400 12px/1 var(--sans); color: var(--muted); margin-left: 4px; }
+@media (max-width: 520px) { .reg-names { grid-template-columns: minmax(0, 1fr); } }
+.reg-label { font: 600 12px/1 var(--cond); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.reg-input {
+  font: 400 17px/1.2 var(--mono); color: var(--amber); width: 100%;
+  background: linear-gradient(var(--glass), var(--glass-2));
+  border: 1px solid var(--key-edge); border-radius: 4px; padding: 12px 14px;
+}
+.reg-input:focus { outline: 2px solid var(--amber-dim); outline-offset: 2px; }
+.reg-agree { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; font-size: 14px; color: #3A3732; margin-top: 4px; }
+.reg-agree input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--amber-dim); }
+.get-body .reg-error { margin: 0; color: #9A2E1E; font-weight: 600; font-size: 14px; }
+.reg-form .key { justify-self: start; margin-top: 8px; }
+/* Hidden from people, visible to form-filling bots. */
+.reg-hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.reg-privacy { max-width: 60ch; }
+.get-body .reg-code {
+  font: 500 15px/1.6 var(--mono); color: var(--amber); letter-spacing: .02em;
+  background: linear-gradient(var(--glass), var(--glass-2)); border-radius: 4px;
+  padding: 16px 18px; width: 100%; margin: 4px 0 0; overflow-wrap: anywhere; user-select: all;
+}
+.reg-actions { display: flex; flex-wrap: wrap; gap: 14px; }
+.reg-actions .key { margin-top: 0; }
+.reg-h2 { font-size: 22px; margin-top: 14px; }

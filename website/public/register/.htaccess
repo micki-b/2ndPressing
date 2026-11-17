@@ -1,0 +1,15 @@
+# Free registration (PHP). Secrets and data live outside the website, in
+# ~/secondpressing-private/ (see _lib.php).
+DirectoryIndex index.php
+
+# Shared code is included, never served.
+<FilesMatch "^(_|error_log|\.)">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always set Cache-Control "private, no-store"
+  Header always set Referrer-Policy "no-referrer"
+  # The form posts to this site; copy.js is the only script.
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+</IfModule>

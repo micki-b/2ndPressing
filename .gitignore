@@ -25,3 +25,7 @@ runtime/au/build/
 runtime/au/build-universal/
 
 runtime/fixtures-protect/
+
+# Private working folders (marketing drafts, test recordings): never in git
+marketing/
+test/

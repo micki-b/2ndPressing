@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Download 2ndPressing beta</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Beta download of 2ndPressing for macOS and Windows: app and plugins.">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/site.css?v=6">
+</head>
+<body>
+
+<header class="band top">
+  <div class="wrap top-inner">
+    <a class="brand" href="/" aria-label="2ndPressing home"><img class="brand-icon" src="/assets/header-icon.svg" alt="" width="36" height="36"><span class="wm">2<span class="nd">nd</span>Pressing</span></a>
+    <nav aria-label="Sections"><a href="/">Home</a></nav>
+  </div>
+</header>
+
+<main>
+
+<section class="band get beta-hero">
+  <div class="wrap get-inner">
+    <div class="get-card beta-card">
+      <div class="get-head">
+        <span class="brand compact">2<span class="nd">nd</span>Pressing</span><span class="get-dim">Declicker · beta 0.2.0</span>
+      </div>
+      <div class="get-body">
+        <h1 class="beta-title">Download 2ndPressing</h1>
+        <p>2ndPressing is free. It runs for 14 days, then asks for a free activation code: <a href="/register/">register your email</a> and you get one right away.</p>
+        <div class="platforms-dl">
+          <div class="dl">
+            <a class="key primary" href="/downloads/macOS/2ndPressing-0.2.0.pkg" download><span class="lamp" aria-hidden="true"></span>Download for Mac</a>
+            <dl class="beta-facts">
+              <dt>File</dt><dd>2ndPressing-0.2.0.pkg, 17.3 MB</dd>
+              <dt>Needs</dt><dd>macOS 11 or later, Apple Silicon or Intel</dd>
+              <dt>Signed</dt><dd>Developer ID, notarized by Apple</dd>
+            </dl>
+          </div>
+          <div class="dl">
+            <a class="key primary" href="/downloads/Windows/2ndPressing-0.2.0-windows-x64-setup.exe" download><span class="lamp" aria-hidden="true"></span>Download for Windows</a>
+            <dl class="beta-facts">
+              <dt>File</dt><dd>2ndPressing-0.2.0-windows-x64-setup.exe, 3.1 MB</dd>
+              <dt>Needs</dt><dd>Windows 10 or 11, 64-bit</dd>
+              <dt>Signed</dt><dd>Not yet: Windows will show a warning (see below)</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap narrow beta-doc">
+
+    <h2>What the installer adds</h2>
+    <ul class="beta-list">
+      <li><b>2ndPressing app.</b> Play a turntable through any audio interface and hear it cleaned live, no DAW needed.</li>
+      <li><b>Audio Unit</b> (Mac only), for Logic Pro, GarageBand and other AU hosts. It installs the CLAP plugin too, which it loads.</li>
+      <li><b>VST3</b> and <b>CLAP</b> plugins, for other DAWs.</li>
+    </ul>
+    <p class="body">On the Mac, choose <b>Customize</b> on the Installation Type step to pick only some of these; on Windows, untick what you don’t need on the Choose Components page.</p>
+
+    <h2>Install on a Mac</h2>
+    <ol class="beta-list">
+      <li>Open <code>2ndPressing-0.2.0.pkg</code> and follow the installer. It asks for your Mac password because plugins go into the shared Library folder.</li>
+      <li><b>App:</b> open 2ndPressing from Applications. The first time, macOS asks whether it may use the microphone. Allow it, or the app can’t hear your audio interface.</li>
+      <li><b>Plugins:</b> restart your DAW. In Logic Pro the plugin is under <i>Audio Units › 2ndPressing › 2ndPressing Declicker</i>.</li>
+    </ol>
+
+    <h2>Install on Windows</h2>
+    <ol class="beta-list">
+      <li>Open <code>2ndPressing-0.2.0-windows-x64-setup.exe</code>. The installer isn’t code-signed yet, so Windows shows <i>“Windows protected your PC”</i>: click <b>More info</b>, then <b>Run anyway</b>. Approve the administrator prompt.</li>
+      <li><b>App:</b> open 2ndPressing from the Start menu. If Windows asks about microphone access, allow it.</li>
+      <li><b>Plugins:</b> restart your DAW and rescan plugins if it doesn’t find them. They are in <i>Common Files\VST3</i> and <i>Common Files\CLAP</i>.</li>
+    </ol>
+    <h2>Activate (free)</h2>
+    <ol class="beta-list">
+      <li>Get your code: <a href="/register/">register your email</a>, open the link in the email we send, and copy the code (it starts with <code>2NDP</code>).</li>
+      <li>Open 2ndPressing, the app or the plugin in your DAW, and click <b>FREE TRIAL · … DAYS LEFT</b> at the bottom right of the faceplate.</li>
+      <li>Press <b>PASTE CODE</b>. One code activates the app and every plugin format on that computer. The check is offline: 2ndPressing never contacts the internet.</li>
+    </ol>
+    <p class="body">Without a code, everything works for 14 days. After that, audio passes through unprocessed until you activate.</p>
+
+    <p class="body"><b>Windows testers wanted.</b> This is the first Windows build and it has had very little testing on real PCs, so any report, even “it installed and worked”, helps.</p>
+
+    <h2>Good to know in this beta</h2>
+    <ul class="beta-list">
+      <li><b>Delay.</b> Percussion protection is set to Extended, which looks about 2 seconds ahead, so you hear the music 2 s late. DAWs compensate automatically. For live listening in the app, press <b>Off</b> for a 32 ms delay.</li>
+      <li><b>Sample rates.</b> 44.1 and 48 kHz are the tested rates. Higher rates work but are experimental.</li>
+      <li><b>In the app,</b> pick your audio interface and the channel pair your turntable is on in the Audio strip under the controls. The status line says what’s wrong if no sound arrives.</li>
+    </ul>
+
+    <h2>Feedback</h2>
+    <p class="body">Write to <a href="mailto:hello@secondpressing.com?subject=2ndPressing%20beta%200.2.0">hello@secondpressing.com</a>. Most useful: your computer and system version, your audio interface and DAW, what you did and what happened. A short clip of a record where it did well or badly is gold.</p>
+
+    <h2>Uninstall</h2>
+    <p class="body"><b>Windows:</b> Settings › Apps › 2ndPressing Declicker › Uninstall. It removes the app and both plugins; saved settings and activation stay in <code>%APPDATA%\2ndPressing</code>.</p>
+    <p class="body"><b>Mac:</b> delete these, then restart your DAW:</p>
+    <ul class="beta-list mono-list">
+      <li>/Applications/2ndPressing.app</li>
+      <li>/Library/Audio/Plug-Ins/Components/2ndPressing Declicker.component</li>
+      <li>/Library/Audio/Plug-Ins/VST3/2ndPressing Declicker.vst3</li>
+      <li>/Library/Audio/Plug-Ins/CLAP/2ndPressing Declicker.clap</li>
+      <li>~/Library/Application Support/2ndPressing (saved settings and activation)</li>
+    </ul>
+
+    <h2>Check the download</h2>
+    <p class="body">SHA-256 of <code>2ndPressing-0.2.0.pkg</code> (Mac):</p>
+    <p class="checksum">259f478f4d461c337f1d1f8caccbe43b53232af87a6a7f884b13b9b4d9849aa8</p>
+    <p class="body">SHA-256 of <code>2ndPressing-0.2.0-windows-x64-setup.exe</code> (Windows):</p>
+    <p class="checksum">8d2dcb730557bd1661fea8d523692427fe23e0fd811e2bba80588a13d749f0a1</p>
+    <p class="small">Mac Terminal: <code>shasum -a 256 ~/Downloads/2ndPressing-0.2.0.pkg</code><br>
+    Windows PowerShell: <code>Get-FileHash $HOME\Downloads\2ndPressing-0.2.0-windows-x64-setup.exe</code></p>
+  </div>
+</section>
+
+</main>
+
+<footer class="band foot">
+  <div class="wrap foot-inner">
+    <span class="brand compact">2<span class="nd">nd</span>Pressing</span>
+    <span>© 2026 Micki Braun · Open source, GPL-3.0</span>
+    <span>Beta: results vary by recording.</span>
+  </div>
+</footer>
+
+</body>
+</html>

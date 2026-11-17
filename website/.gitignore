@@ -1,0 +1,13 @@
+secondpressing-site.zip
+# Pinegrow project and backup files (local editing only)
+public/_pgbackup/
+public/_pginfo/
+public/pinegrow.json
+public/downloads/**/*.pkg
+public/downloads/**/*.exe
+public/downloads/**/*.msi
+deploy.env
+# Listening-demo audio (rebuild with tools/listening-demo, see its README)
+public/listen/**/audio/
+# Private, password-gated previews (copyrighted audio, secrets): never in git
+public/preview/
