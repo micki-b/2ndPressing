@@ -1,0 +1,69 @@
+{
+  "windows": 1,
+  "channels": 2,
+  "samples": 48000,
+  "sample_rate": 48000,
+  "arrays": {
+    "audio": {
+      "dtype": "float32",
+      "shape": [
+        1,
+        2,
+        48000
+      ]
+    },
+    "features": {
+      "dtype": "float32",
+      "shape": [
+        1,
+        2,
+        3,
+        48000
+      ]
+    },
+    "scores": {
+      "dtype": "float32",
+      "shape": [
+        1,
+        2,
+        48000
+      ]
+    },
+    "masks": {
+      "dtype": "uint8",
+      "shape": [
+        1,
+        2,
+        48000
+      ]
+    },
+    "repaired": {
+      "dtype": "float32",
+      "shape": [
+        1,
+        2,
+        48000
+      ]
+    }
+  },
+  "threshold": 2.75,
+  "post": {
+    "threshold": 2.75,
+    "ext_drop": 2.0,
+    "merge": 8,
+    "pre": 2,
+    "post": 8,
+    "max_region": 480,
+    "min_contrast": 0.0,
+    "contrast_context": 150
+  },
+  "repair": {
+    "order": 32,
+    "context": 1024,
+    "context_right": 512,
+    "max_group": 480
+  },
+  "D": 512,
+  "edge_ignore": 2400,
+  "notes": "Compare masks/repaired on [edge_ignore, samples - edge_ignore); the offline reference zero-pads features at the window end. Unmasked samples of repaired equal audio exactly."
+}

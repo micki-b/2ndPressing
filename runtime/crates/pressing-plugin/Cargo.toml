@@ -1,0 +1,43 @@
+[package]
+name = "pressing-plugin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "2ndPressing Declicker: VST3/CLAP plugin and standalone app"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[[bin]]
+name = "pressing-standalone"
+path = "src/main.rs"
+required-features = ["standalone"]
+
+[features]
+default = []
+# Standalone app (CoreAudio/WASAPI/ALSA/JACK). Opt-in so the VST3/CLAP
+# bundle never needs ALSA/JACK development files on Linux. Build the app with
+# `cargo build -p pressing-plugin --release --features standalone`; on Linux
+# that needs the ALSA and JACK dev packages (e.g. libasound2-dev and
+# libjack-jackd2-dev on Debian/Ubuntu).
+standalone = ["nih_plug/standalone"]
+
+[dependencies]
+pressing-core = { path = "../pressing-core" }
+# Pinned for reproducible builds. `assert_process_allocs` aborts on any
+# allocation inside `process()` in debug builds (no effect in release).
+nih_plug = { git = "https://github.com/robbert-vdh/nih-plug", rev = "de421011f41a6d10fc8c7a6084e4f4dee0143683", features = ["assert_process_allocs"] }
+# The custom window (same pinned revision as nih_plug).
+nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug", rev = "de421011f41a6d10fc8c7a6084e4f4dee0143683" }
+# Free activation codes and the 14-day trial (offline check).
+pressing-license = { path = "../pressing-license" }
+# PASTE CODE key on the activation page (host windows often swallow
+# keystrokes, so the code is read from the clipboard instead of typed).
+arboard = { version = "3.7", default-features = false }
+
+[dev-dependencies]
+# Same source as nih_plug's `assert_process_allocs` dependency, whose global
+# allocator (debug builds) makes `assert_no_alloc` abort on any allocation.
+assert_no_alloc = { git = "https://github.com/robbert-vdh/rust-assert-no-alloc.git", branch = "feature/nested-permit-forbid" }

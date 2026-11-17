@@ -1,0 +1,27 @@
+# Audio data never goes in git
+data/
+*.wav
+*.flac
+*.aiff
+*.aif
+out/
+
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+
+# Rust
+target/
+
+.DS_Store
+
+# Rust runtime
+runtime/fixtures-large/
+
+# Audio Unit wrapper build output
+runtime/au/build/
+runtime/au/build-universal/
+
+runtime/fixtures-protect/

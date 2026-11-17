@@ -1,0 +1,101 @@
+name: Windows signed release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: windows-2022
+    environment: windows-signing
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check signing configuration
+        env:
+          CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          foreach ($name in 'CLIENT_ID', 'TENANT_ID', 'SUBSCRIPTION_ID') {
+            if (![Environment]::GetEnvironmentVariable($name)) { throw "Missing Azure setting: $name" }
+          }
+
+      - name: Install build tools
+        run: |
+          rustup toolchain install stable --profile minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Rust installation failed' }
+          rustup default stable
+          if ($LASTEXITCODE -ne 0) { throw 'Rust toolchain selection failed' }
+          rustup target add x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { throw 'Rust target installation failed' }
+          choco install nsis --no-progress -y
+          if ($LASTEXITCODE -ne 0) { throw 'NSIS installation failed' }
+
+      - name: Build and stage
+        run: ./runtime/release/windows/build-release.ps1
+
+      - name: Generate uninstaller
+        run: ./runtime/release/windows/package-release.ps1 -GenerateUninstaller
+
+      - name: Authenticate to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign app, plugins, and uninstaller
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: https://wus2.codesigning.azure.net/
+          signing-account-name: mickibraun
+          certificate-profile-name: prelease
+          files-folder: ${{ github.workspace }}\runtime\target\release-windows\stage
+          files-folder-filter: exe,vst3,clap
+          files-folder-recurse: true
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Package signed binaries
+        run: ./runtime/release/windows/package-release.ps1
+
+      - name: Sign installer
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: https://wus2.codesigning.azure.net/
+          signing-account-name: mickibraun
+          certificate-profile-name: prelease
+          files-folder: ${{ github.workspace }}\runtime\target\release-windows
+          files-folder-filter: '*-setup.exe'
+          files-folder-recurse: false
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Verify and checksum installer
+        run: |
+          $out = 'runtime/target/release-windows'
+          $setup = @(Get-ChildItem "$out/*-setup.exe")
+          if ($setup.Count -ne 1) { throw 'Expected exactly one installer' }
+          ./runtime/release/windows/verify-signatures.ps1 -Path $setup[0].FullName
+          $hash = (Get-FileHash $setup[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content "$out/SHA256SUMS.txt" "$hash  $($setup[0].Name)" -Encoding ascii
+
+      - name: Upload signed installer for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-signed-installer
+          if-no-files-found: error
+          path: |
+            runtime/target/release-windows/*-setup.exe
+            runtime/target/release-windows/SHA256SUMS.txt

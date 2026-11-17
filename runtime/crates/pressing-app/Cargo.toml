@@ -1,0 +1,26 @@
+[package]
+name = "pressing-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "2ndPressing Declicker: standalone desktop app (live input to output)"
+
+[[bin]]
+name = "2ndpressing"
+path = "src/main.rs"
+
+[dependencies]
+pressing-core = { path = "../pressing-core" }
+# The faceplate (editor::Panel), the real-time processor (dsp::Dsp) and the
+# sensitivity mapping are shared with the plugin.
+pressing-plugin = { path = "../pressing-plugin" }
+# Same versions as nih-plug's standalone backend (already in Cargo.lock).
+cpal = "0.15.3"
+rtrb = "0.2.3"
+# Must match the egui that nih_plug_egui uses (0.31.x) so the faceplate's
+# egui types are the app's egui types.
+eframe = { version = "0.31.1", default-features = false, features = ["default_fonts", "glow"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
