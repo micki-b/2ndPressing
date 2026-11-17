@@ -22,6 +22,12 @@ Unicode true
 !ifndef OUTFILE
   !define OUTFILE "2ndPressing-${VERSION}-windows-x64-setup.exe"
 !endif
+; Native Windows MakeNSIS needs Windows separators for source file lookup.
+!ifdef NSIS_WIN32_MAKENSIS
+  !define SEP "\"
+!else
+  !define SEP "/"
+!endif
 
 !define PRODUCT "2ndPressing"
 !define PLUGIN "2ndPressing Declicker"
@@ -44,8 +50,8 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 VIAddVersionKey "LegalCopyright" "GPL-3.0-or-later"
 
 ; ---- Pages ----
-!define MUI_ICON "${STAGE}/2ndPressing.ico"
-!define MUI_UNICON "${STAGE}/2ndPressing.ico"
+!define MUI_ICON "${STAGE}${SEP}2ndPressing.ico"
+!define MUI_UNICON "${STAGE}${SEP}2ndPressing.ico"
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TITLE "${PLUGIN} ${VERSION}"
 !define MUI_WELCOMEPAGE_TEXT "Click and pop removal for vinyl: a compact neural network finds the clicks, the music on either side rebuilds them, and everything else passes through bit for bit.$\r$\n$\r$\nThis installs the 2ndPressing app and the VST3 and CLAP plugins. You can choose which on the next pages."
@@ -56,7 +62,7 @@ VIAddVersionKey "LegalCopyright" "GPL-3.0-or-later"
 !define MUI_FINISHPAGE_LINK_LOCATION "https://secondpressing.com/"
 
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "${STAGE}/LICENSE.txt"
+!insertmacro MUI_PAGE_LICENSE "${STAGE}${SEP}LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -68,7 +74,7 @@ VIAddVersionKey "LegalCopyright" "GPL-3.0-or-later"
 Function .onInit
 !ifdef GENERATE_UNINSTALLER
   ; Build-time helper only: emit the uninstaller without installing anything.
-  WriteUninstaller "${STAGE}/Uninstall.exe"
+  WriteUninstaller "${STAGE}\Uninstall.exe"
   Quit
 !endif
   ${IfNot} ${RunningX64}
@@ -85,28 +91,28 @@ FunctionEnd
 ; ---- Components ----
 Section "2ndPressing app" SecApp
   SetOutPath "$INSTDIR"
-  File "${STAGE}/app/2ndPressing.exe"
+  File "${STAGE}${SEP}app${SEP}2ndPressing.exe"
   CreateDirectory "$SMPROGRAMS\${PRODUCT}"
   CreateShortcut "$SMPROGRAMS\${PRODUCT}\${PRODUCT}.lnk" "$INSTDIR\2ndPressing.exe" "" "$INSTDIR\2ndPressing.ico"
 SectionEnd
 
 Section "VST3 plugin" SecVST3
   SetOutPath "$COMMONFILES64\VST3\${PLUGIN}.vst3\Contents\x86_64-win"
-  File "${STAGE}/vst3/${PLUGIN}.vst3/Contents/x86_64-win/${PLUGIN}.vst3"
+  File "${STAGE}${SEP}vst3${SEP}${PLUGIN}.vst3${SEP}Contents${SEP}x86_64-win${SEP}${PLUGIN}.vst3"
 SectionEnd
 
 Section "CLAP plugin" SecCLAP
   SetOutPath "$COMMONFILES64\CLAP"
-  File "${STAGE}/clap/${PLUGIN}.clap"
+  File "${STAGE}${SEP}clap${SEP}${PLUGIN}.clap"
 SectionEnd
 
 ; Always: icon, licence, uninstaller and the Settings > Apps entry.
 Section "-common"
   SetOutPath "$INSTDIR"
-  File "${STAGE}/2ndPressing.ico"
-  File "${STAGE}/LICENSE.txt"
+  File "${STAGE}${SEP}2ndPressing.ico"
+  File "${STAGE}${SEP}LICENSE.txt"
 !ifdef SIGNED_UNINSTALLER
-  File "${STAGE}/Uninstall.exe"
+  File "${STAGE}${SEP}Uninstall.exe"
 !else
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 !endif

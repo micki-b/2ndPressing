@@ -24,4 +24,5 @@ Copy-Item "$bin/pressing_plugin.dll" "$stage/clap/$plugin.clap"
 Copy-Item "$bin/2ndpressing.exe" "$stage/app/2ndPressing.exe"
 Copy-Item "$PSScriptRoot/2ndPressing.ico" $stage
 Copy-Item '../LICENSE' "$stage/LICENSE.txt"
+Get-ChildItem -LiteralPath $stage -File -Recurse | Select-Object FullName, Length
 Set-Content -LiteralPath "$out/version.txt" -Value $version -Encoding ascii

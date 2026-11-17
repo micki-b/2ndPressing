@@ -43,6 +43,16 @@ jobs:
       - name: Build and stage
         run: ./runtime/release/windows/build-release.ps1
 
+      - name: Preserve unsigned build for packaging diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-unsigned-staging
+          retention-days: 1
+          if-no-files-found: error
+          path: |
+            runtime/target/release-windows/stage/
+            runtime/target/release-windows/version.txt
+
       - name: Generate uninstaller
         run: ./runtime/release/windows/package-release.ps1 -GenerateUninstaller
 
