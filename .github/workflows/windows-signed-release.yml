@@ -2,6 +2,11 @@ name: Windows signed release
 
 on:
   workflow_dispatch:
+    inputs:
+      unsigned_run_id:
+        description: 'Optional prior run ID to reuse its unsigned build for packaging retries'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -12,6 +17,7 @@ jobs:
     environment: windows-signing
     permissions:
       contents: read
+      actions: read
       id-token: write
     defaults:
       run:
@@ -41,7 +47,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'NSIS installation failed' }
 
       - name: Build and stage
+        if: inputs.unsigned_run_id == ''
         run: ./runtime/release/windows/build-release.ps1
+
+      - name: Restore prior unsigned build for packaging retry
+        if: inputs.unsigned_run_id != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-unsigned-staging
+          run-id: ${{ inputs.unsigned_run_id }}
+          github-token: ${{ github.token }}
+          path: runtime/target/release-windows
 
       - name: Preserve unsigned build for packaging diagnostics
         uses: actions/upload-artifact@v4

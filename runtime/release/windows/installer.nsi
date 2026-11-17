@@ -74,7 +74,13 @@ VIAddVersionKey "LegalCopyright" "GPL-3.0-or-later"
 Function .onInit
 !ifdef GENERATE_UNINSTALLER
   ; Build-time helper only: emit the uninstaller without installing anything.
+  ClearErrors
   WriteUninstaller "${STAGE}\Uninstall.exe"
+  IfErrors uninstaller_failed
+  SetErrorLevel 0
+  Quit
+uninstaller_failed:
+  SetErrorLevel 1
   Quit
 !endif
   ${IfNot} ${RunningX64}

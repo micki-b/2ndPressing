@@ -13,7 +13,7 @@ if ($GenerateUninstaller) {
     if ($LASTEXITCODE -ne 0) { throw 'Uninstaller generator compilation failed' }
     $process = Start-Process -FilePath $helper -ArgumentList '/S' -Wait -PassThru
     if ($process.ExitCode -ne 0 -or !(Test-Path "$stage/Uninstall.exe")) {
-        throw 'Uninstaller generation failed'
+        throw "Uninstaller generation failed: exit=$($process.ExitCode), fileExists=$(Test-Path "$stage/Uninstall.exe")"
     }
 } else {
     # Do not produce a release installer unless all embedded binaries are signed.
