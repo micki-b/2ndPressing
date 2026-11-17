@@ -62,6 +62,11 @@ Reference: https://learn.microsoft.com/en-us/azure/developer/github/connect-from
    test browser download, installation, app audio, plugin discovery, upgrade,
    and uninstall on a clean Windows machine.
 
+For packaging/signing retries, the optional `unsigned_run_id` input restores
+`windows-unsigned-staging` from an earlier run in this repository. These
+diagnostic artifacts expire after one day. Leave the input empty for normal
+releases so the workflow builds the selected source revision.
+
 No client secret or exported certificate is needed. The federated credential's
 repository and environment must match the workflow exactly. An incorrect match
 causes Azure login to fail; missing Signer permission or a mismatched service
@@ -83,10 +88,14 @@ Reference: https://github.com/Azure/artifact-signing-action
 
 ## Validation status
 
-The workflow YAML parses and both NSIS modes compile with the existing local
-Windows staging files (the final mode used a temporary uninstaller fixture).
-NSIS emits warning 6020 in the final mode because it embeds the separately
-generated uninstaller instead of calling WriteUninstaller; this is expected.
-The Windows PowerShell scripts,
-OIDC login, signing calls, and end-to-end installation require the first Windows
-Actions run; they cannot be validated on this Mac alone.
+Windows compilation passed in run 44009622394. Run 44011406548 reused those
+compiled binaries and successfully generated the uninstaller, authenticated via
+OIDC, signed all four staged binaries, packaged and signed the installer,
+verified signatures and timestamps, and uploaded the release artifact.
+
+https://github.com/micki-b/2ndPressing/actions/runs/44011406548
+
+The downloaded installer checksum was also checked on the Mac. Installation,
+audio playback, plugin discovery, upgrades, and uninstall still need a clean
+Windows machine test. NSIS warning 6020 in the final packaging mode is expected:
+that mode embeds the separately generated, signed uninstaller.
