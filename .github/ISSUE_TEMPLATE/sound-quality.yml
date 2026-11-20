@@ -1,0 +1,70 @@
+name: Sound quality
+description: Clicks left in, music damaged, percussion dulled, or another audible artifact.
+labels: [sound quality]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you: sound reports are the most useful feedback 2ndPressing gets. A short clip makes a report far more useful, but only share recordings you're allowed to share (your own records, public-domain recordings, or a few seconds for this report).
+        Enter "unknown" when you can't find a detail.
+  - type: dropdown
+    id: problem
+    attributes:
+      label: What did you hear?
+      options:
+        - Clicks or pops left in
+        - Music damaged where there was no click (a false repair)
+        - Drums, hand claps or other percussion dulled
+        - Dropouts, crackle or distortion added
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 2ndPressing version, and app or plugin
+      description: "Mac: Get Info on the app. Windows: Settings ▸ Apps. In a DAW: its plugin manager."
+      placeholder: "e.g. 0.2.0, VST3 in REAPER 7.28 on Windows 11"
+    validations:
+      required: true
+  - type: input
+    id: settings
+    attributes:
+      label: Settings
+      description: Sensitivity and percussion protection (Off, Standard or Extended).
+      placeholder: "e.g. 50 %, Extended"
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: The record
+      description: Format and speed, and condition. Artist and title help if you're happy to share them.
+      placeholder: "e.g. 12\" LP at 33⅓, used, light crackle; or 78 rpm shellac, worn"
+    validations:
+      required: true
+  - type: input
+    id: chain
+    attributes:
+      label: Playback and recording chain
+      description: Turntable, cartridge, phono preamp, audio interface and sample rate, as far as you know.
+      placeholder: "e.g. Technics SL-1200, Ortofon 2M Red, ART DJ Pre II, Zoom H6 at 48 kHz"
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where in the recording, and what it sounds like
+      description: Times (minutes:seconds) of the problem spots, and what you hear there. Compare with BYPASS and with CLICKS (what was removed) if you can.
+      placeholder: |
+        1:12 – a loud pop is still there
+        2:05 – the snare sounds softer than with BYPASS
+    validations:
+      required: true
+  - type: textarea
+    id: clip
+    attributes:
+      label: Audio clip (optional)
+      description: Attach or link a short WAV or FLAC of the passage before 2ndPressing (the original), ideally with a few seconds either side. Only recordings you may share.
+    validations:
+      required: false

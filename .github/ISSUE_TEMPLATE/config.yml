@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/micki-b/2ndPressing/security/advisories/new
+    about: Please report security problems privately, not in a public issue (see SECURITY.md).
+  - name: Questions, or feedback by email
+    url: https://secondpressing.com/beta/
+    about: Not sure it's a bug? Write to hello@secondpressing.com.

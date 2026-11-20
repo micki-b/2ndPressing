@@ -1,0 +1,110 @@
+name: Bug report
+description: Something in 2ndPressing doesn't work as expected (crashes, no sound, installer, activation, plugin not found, website).
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues first. Enter "unknown" or "n/a" when a detail doesn't apply or you can't find it.
+        **Never paste your activation code or email address**, and remove personal paths and account details from screenshots and logs.
+        Is it about the sound itself (clicks left in, music damaged, percussion dulled)? Use the **Sound quality** form instead.
+  - type: input
+    id: version
+    attributes:
+      label: 2ndPressing version
+      description: "Mac: select 2ndPressing in Applications ▸ File ▸ Get Info. Windows: Settings ▸ Apps ▸ 2ndPressing Declicker. In a DAW: its plugin manager. The installer's file name also contains it."
+      placeholder: "e.g. 0.2.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Where did it happen?
+      options:
+        - Desktop app
+        - Audio Unit plugin (Mac)
+        - VST3 plugin
+        - CLAP plugin
+        - Command-line tool
+        - Installer or uninstaller
+        - Activation (trial, PASTE CODE)
+        - Website or registration email
+        - Other / unknown
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: DAW or host, and its version
+      description: For plugins. Write "n/a" for the app, installer or website.
+      placeholder: "e.g. Logic Pro 11.1, REAPER 7.28, Bitwig Studio 5.3"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+        - Other / unknown
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: Operating system version
+      placeholder: "e.g. macOS 15.1, Windows 11 24H2, Ubuntu 24.04"
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Computer
+      description: Model or CPU, and RAM if known. No serial numbers.
+      placeholder: "e.g. MacBook Pro M3, 18 GB; Intel i7-12700 PC, 32 GB"
+    validations:
+      required: true
+  - type: input
+    id: audio-setup
+    attributes:
+      label: Audio interface, sample rate and buffer size
+      description: Which input and output, and how many channels. Write "n/a" for installer or website problems.
+      placeholder: "e.g. Zoom H6 (stereo mix) in, Bose USB out, 48 kHz, 512 samples"
+    validations:
+      required: true
+  - type: input
+    id: settings
+    attributes:
+      label: 2ndPressing settings
+      description: Sensitivity, percussion protection, Listen mode and Bypass, if relevant.
+      placeholder: "e.g. 50 %, Extended, Repaired, Bypass off"
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include any error message or the text in the status band at the bottom of the faceplate.
+      placeholder: "When I …, 2ndPressing … . I expected … ."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest sequence that shows the problem. If it doesn't happen every time, say how often and what you were doing.
+      placeholder: |
+        1. Open …
+        2. Choose …
+        3. Observe …
+    validations:
+      required: true
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Screenshots, logs or other context (optional)
+      description: Paste error text or attach a screenshot. Remove activation codes, email addresses and private paths.
+    validations:
+      required: false
