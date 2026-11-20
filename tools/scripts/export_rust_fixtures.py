@@ -10,6 +10,12 @@ channel c (all float32 unless noted, shape (W, 2, L)):
 plus manifest.json with shapes, dtypes, threshold, post and repair settings.
 
 usage: export_rust_fixtures.py EXPORT_DIR OUT_DIR [--windows N] [--samples L]
+       export_rust_fixtures.py EXPORT_DIR OUT_DIR --audio FILE --offset S --samples L [--source TEXT]
+
+With --audio, the input is one stereo window of FILE (decoded to 48 kHz,
+starting at S seconds) instead of golden.npz's validation windows. The
+committed fixtures use this with a public-domain 78, so no library audio is
+in the repository; --source records where the audio came from.
 """
 
 import argparse
@@ -18,6 +24,7 @@ from pathlib import Path
 
 import numpy as np
 
+from pressing_tools.library import decode
 from pressing_tools.nn.features import features_np
 from pressing_tools.nn.method import NeuralConfig, NeuralMethod
 
@@ -28,15 +35,29 @@ def main() -> None:
     ap.add_argument("out", type=Path)
     ap.add_argument("--windows", type=int, default=8)
     ap.add_argument("--samples", type=int, default=0, help="truncate windows to this many samples")
+    ap.add_argument("--audio", type=Path, help="take one window from this file instead of golden.npz")
+    ap.add_argument("--offset", type=float, default=0.0, help="start of the --audio window, seconds")
+    ap.add_argument("--source", default="", help="provenance note for manifest.json")
     a = ap.parse_args()
 
-    g = np.load(a.export_dir / "golden.npz")
     w = json.loads((a.export_dir / "weights.json").read_text())
     post = w["post"]
     thr = float(post["threshold"])
-    audio = g["audio"][:a.windows].astype(np.float32)
-    if a.samples:
-        audio = audio[..., :a.samples]
+    if a.audio:
+        if not a.samples:
+            ap.error("--audio needs --samples")
+        x = decode(a.audio, sr=48000)                      # (frames, channels)
+        if x.shape[1] != 2:
+            ap.error("--audio must be stereo")
+        start = round(a.offset * 48000)
+        audio = x[start:start + a.samples].T[None].astype(np.float32)   # (1, 2, L)
+        if audio.shape[-1] != a.samples:
+            ap.error("--offset + --samples runs past the end of the file")
+    else:
+        g = np.load(a.export_dir / "golden.npz")
+        audio = g["audio"][:a.windows].astype(np.float32)
+        if a.samples:
+            audio = audio[..., :a.samples]
     W, C, L = audio.shape
     method = NeuralMethod(NeuralConfig(model=str(a.export_dir / "model.onnx"), threshold=thr,
                                        ext_drop=post["ext_drop"], merge=post["merge"], pre=post["pre"],
@@ -67,6 +88,7 @@ def main() -> None:
                            "context_right": method.rep_cfg.repair_context_right,
                            "max_group": method.rep_cfg.max_group},
                 "D": int(w["D"]), "edge_ignore": 2400,
+                "source": a.source or "golden.npz validation windows",
                 "notes": "Compare masks/repaired on [edge_ignore, samples - edge_ignore); the offline "
                          "reference zero-pads features at the window end. Unmasked samples of repaired "
                          "equal audio exactly."}

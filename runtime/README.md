@@ -40,7 +40,10 @@ cargo test --workspace --release -- --ignored --nocapture   # micro-bench + CLI 
 
 Parity fixtures:
 
-- `crates/pressing-core/tests/fixtures/` (1 window of 48,000 samples) is committed.
+- `crates/pressing-core/tests/fixtures/` (1 window of 48,000 samples) is committed. Its
+  audio is 1 s of a public-domain 1924 78 rpm record (source in `manifest.json`), made with
+  `tools/scripts/export_rust_fixtures.py EXPORT_DIR crates/pressing-core/tests/fixtures
+  --audio FILE --offset 86 --samples 48000 --source TEXT`. Library audio never goes in git.
 - `fixtures-large/` (8 windows of 96,000 samples) is git-ignored. Regenerate it with
   `tools/scripts/export_rust_fixtures.py EXPORT_DIR runtime/fixtures-large --windows 8`.
   Tests that need it print `fixtures-large absent; skipping` and pass when it is missing.
