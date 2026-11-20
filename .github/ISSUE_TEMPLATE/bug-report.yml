@@ -12,7 +12,7 @@ body:
     id: version
     attributes:
       label: 2ndPressing version
-      description: "Mac: select 2ndPressing in Applications ▸ File ▸ Get Info. Windows: Settings ▸ Apps ▸ 2ndPressing Declicker. In a DAW: its plugin manager. The installer's file name also contains it."
+      description: "Shown at the bottom of the faceplate's INFO page (versions after 0.2.0). Otherwise: Mac, select 2ndPressing in Applications ▸ File ▸ Get Info; Windows, Settings ▸ Apps ▸ 2ndPressing Declicker; in a DAW, its plugin manager."
       placeholder: "e.g. 0.2.0"
     validations:
       required: true

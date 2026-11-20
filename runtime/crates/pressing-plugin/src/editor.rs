@@ -36,6 +36,8 @@ use crate::{sensitivity_to_threshold, Monitor, PercussionProtection, PressingPar
 pub const KNOB_RESET: f32 = 50.0;
 
 /// Window size in logical pixels (the faceplate's design size).
+/// Shown in the INFO and activation status bands, so bug reports can quote it.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const WIDTH: u32 = 520;
 pub const HEIGHT: u32 = 470;
 
@@ -753,7 +755,7 @@ impl Faceplate {
         pt.text(
             self.p(16.0, 455.0),
             Align2::LEFT_CENTER,
-            &doc.status_left,
+            format!("{} · VERSION {VERSION}", doc.status_left),
             font(MONO, 9.0),
             LEGEND,
         );
@@ -1293,6 +1295,13 @@ impl Faceplate {
             self.p(16.0, 455.0),
             Align2::LEFT_CENTER,
             "OFFLINE CHECK · 2NDPRESSING NEVER CONTACTS THE INTERNET",
+            font(MONO, 9.0),
+            LEGEND,
+        );
+        pt.text(
+            self.p(504.0, 455.0),
+            Align2::RIGHT_CENTER,
+            format!("VERSION {VERSION}"),
             font(MONO, 9.0),
             LEGEND,
         );

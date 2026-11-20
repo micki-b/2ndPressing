@@ -23,7 +23,7 @@ body:
     id: version
     attributes:
       label: 2ndPressing version, and app or plugin
-      description: "Mac: Get Info on the app. Windows: Settings ▸ Apps. In a DAW: its plugin manager."
+      description: "At the bottom of the faceplate's INFO page (after 0.2.0); otherwise Get Info on the Mac app, Settings ▸ Apps on Windows, or your DAW's plugin manager."
       placeholder: "e.g. 0.2.0, VST3 in REAPER 7.28 on Windows 11"
     validations:
       required: true
