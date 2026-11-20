@@ -1,18 +1,51 @@
 # 2ndPressing
 
-Near-real-time removal of clicks and pops from LP transfers, on modest hardware,
-across Linux / macOS / Windows on x86 and ARM. Open source.
+Click and pop removal for vinyl, for listening and for transfers. A compact
+neural network finds clicks and pops; each flagged passage is rebuilt from the
+music on either side; every other sample passes through untouched, bit for bit.
+It runs in near real time on modest hardware.
 
-## Approach (hybrid)
+- **Download** (free, macOS and Windows): https://secondpressing.com
+- **Hear it**: before/after demos at https://secondpressing.com/listen/
+- **Formats**: desktop app, Audio Unit, VST3, CLAP and a command-line tool
+
+2ndPressing is in beta. It's free: it runs for 14 days, then asks for a free
+activation code (register an email at https://secondpressing.com/register/).
+The check is offline; the software never contacts the internet.
+
+## Build from source
+
+The Rust runtime (engine, plugins, app, CLI) is in [`runtime/`](runtime/); see
+[`runtime/README.md`](runtime/README.md) for building, testing, the plugin
+formats and the signed release scripts. Python tools for data preparation,
+training and evaluation are in [`tools/`](tools/) (below).
+
+## Reporting problems
+
+Use the issue forms: **Bug report**, **Sound quality** (clicks left in, music
+damaged, percussion dulled) or **Feature request**. Security problems: see
+[SECURITY.md](SECURITY.md). Code contributions: see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Licence
+
+GPL-3.0-or-later ([LICENSE](LICENSE)). Fonts: IBM Plex, SIL Open Font License
+(`runtime/crates/pressing-plugin/assets/fonts/OFL.txt`).
+
+## How it works
 
 1. **Detect**: a small causal neural network flags damaged samples.
 2. **Repair**: flagged spans only are filled by autoregressive (LSAR) interpolation.
 3. **Pass through**: every other sample is untouched (bit-exact).
 
-Training data comes from a personal library of VinylStudio transfers. Each raw
-side has a `.crd` sidecar recording every repair VinylStudio made (verified
-against the exported de-clicked tracks), which gives sample-accurate labels.
-Audio never goes in this repo (`data/` is git-ignored).
+The model was trained on the author's private library of LP transfers made with
+VinylStudio. Each raw side has a `.crd` sidecar recording every repair
+VinylStudio made (verified against the exported de-clicked tracks), which gives
+sample-accurate labels. The recordings are not part of this repository and
+never will be (`data/` is git-ignored); the test fixtures use a public-domain
+1924 78 rpm record from the Internet Archive.
+
+# Development
 
 ## Layout
 
@@ -31,9 +64,15 @@ Audio never goes in this repo (`data/` is git-ignored).
     tables, crop sampler, loss, training, streaming reference, ONNX export,
     synthetic benchmark, reports. Design: `docs/neural-detector-v1.md`.
   - `scripts/verify_crd.py` — checks `.crd` records against exported tracks.
-- `runtime/` — Rust real-time engine (planned: nih-plug VST3/CLAP + standalone).
+- `runtime/` — Rust real-time engine, CLAP/VST3/AU plugins, desktop app, CLI and
+  release scripts (see `runtime/README.md`).
+- `website/` — secondpressing.com (static pages, PHP registration, deploy script).
+- `brand/` — the logo model and exports.
 
 ## Tools quick start
+
+Library locations come from `tools/paths.local.json` (git-ignored) or
+`PRESSING_RAW_DIR` / `PRESSING_ITUNES_DIR`; see `tools/src/pressing_tools/paths.py`.
 
 ```sh
 cd tools

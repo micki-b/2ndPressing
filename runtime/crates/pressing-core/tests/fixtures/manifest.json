@@ -65,5 +65,6 @@
   },
   "D": 512,
   "edge_ignore": 2400,
+  "source": "Fritz Kreisler and Carl Lamson, \"Pierrot's Dance Song\" (Korngold), Victor 1062A, 1924; public domain. Internet Archive, Great 78 Project, item 78_pierrots-dance-song_fritz-kreisler-carl-lamson-e-w-korngold-f-kreisler_gbia0197691a, 96 kHz FLAC resampled to 48 kHz, 86.0-87.0 s.",
   "notes": "Compare masks/repaired on [edge_ignore, samples - edge_ignore); the offline reference zero-pads features at the window end. Unmasked samples of repaired equal audio exactly."
 }
