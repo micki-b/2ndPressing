@@ -38,14 +38,13 @@ from pathlib import Path
 
 import numpy as np
 
-from pressing_tools import classical
+from pressing_tools import classical, paths
 from pressing_tools.evaluate import Counts, detection_counts
 
 ROOT = Path(__file__).resolve().parents[3]          # 2ndPressing/
 DATA = ROOT / "data" / "v1"
 MODEL = ROOT / "tools" / "out" / "nn" / "r2_c24_d512" / "export" / "model.onnx"
 MIRAGE = ROOT / "test" / "Fleetwood_Mac~Mirage_sample.m4a"
-MIRAGE_SIDE = Path("/Volumes/Media RAID/Music/VinylStudio/Michael/Fleetwood_Mac~Mirage_[LP]~side1.m4a")
 THRESHOLDS = (2.75, 3.4, 4.05)          # plugin sensitivity 50 / 40 / 30 %
 SR = 48000
 
@@ -176,13 +175,14 @@ def mirage(spec: str | None) -> dict:
     x2 = lib.decode(MIRAGE).T.astype(np.float64)
     N = x2.shape[1]
     cache = DATA / "longform" / "mirage.json"
+    mirage_side = paths.get("protect_side")
     if cache.exists():
         off = json.loads(cache.read_text())["offset"]
     else:
-        off = lib.locate(MIRAGE, MIRAGE_SIDE).offset
+        off = lib.locate(MIRAGE, mirage_side).offset
         cache.write_text(json.dumps({"offset": off}))
     lab = np.zeros((2, N), np.uint8)
-    _, recs = read_crd(MIRAGE_SIDE.with_name(MIRAGE_SIDE.name + ".crd"))
+    _, recs = read_crd(mirage_side.with_name(mirage_side.name + ".crd"))
     for r in recs:
         if off <= r.start < off + N and r.length:
             a, b = r.start - off, min(r.end - off, N)

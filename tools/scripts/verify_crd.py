@@ -26,11 +26,10 @@ from pathlib import Path
 import numpy as np
 
 from pressing_tools import library as lib
+from pressing_tools import paths
 from pressing_tools.crd import PAYLOAD_KINDS, read_crd
 from pressing_tools.labels import LabelConfig, detect_regions, local_sigma, match_residual
 
-RAW = Path("/Volumes/Media RAID/Music/VinylStudio/Michael")
-ITUNES = Path("/Volumes/Media RAID/Music/iTunes/Media/Music")
 Z_APPLIED = 8.0
 
 
@@ -124,7 +123,7 @@ def print_one(r: dict) -> None:
 
 
 def _album_job(album_dir: str, sides: list[str], k: int, seed: int) -> list[dict]:
-    album = lib.Album(Path(album_dir), [s for s in lib.find_sides(RAW) if str(s.path) in sides])
+    album = lib.Album(Path(album_dir), [s for s in lib.find_sides(paths.raw_dir()) if str(s.path) in sides])
     tracks = album.tracks
     random.Random(seed).shuffle(tracks)
     out = []
@@ -162,7 +161,7 @@ def main() -> None:
         print_one(verify(a.side, a.track, a.offset))
         return
 
-    albums, _ = lib.match_albums(RAW, ITUNES)
+    albums, _ = lib.match_albums(paths.raw_dir(), paths.itunes_dir())
     albums = [x for x in albums if all(s.crd.exists() for s in x.sides)]
     random.Random(a.seed).shuffle(albums)
     albums = albums[:a.n]

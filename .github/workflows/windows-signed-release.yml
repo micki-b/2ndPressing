@@ -11,6 +11,13 @@ on:
 permissions:
   contents: read
 
+# Hardening notes:
+# - Every action is pinned to a full commit SHA (the version is in the
+#   comment); Dependabot proposes updates. This job signs with the
+#   publisher identity, so it must never run code a tag could swap.
+# - Azure trusts the `windows-signing` environment. Keep that environment
+#   limited to the `main` branch with a required reviewer (see SIGNING.md).
+
 jobs:
   release:
     runs-on: windows-2022
@@ -23,7 +30,7 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
       - name: Check signing configuration
         env:
@@ -43,16 +50,37 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Rust toolchain selection failed' }
           rustup target add x86_64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { throw 'Rust target installation failed' }
-          choco install nsis --no-progress -y
+          # Pinned: the version on the windows-2022 image at the first signed release.
+          choco install nsis --version=3.10.0 --no-progress -y
           if ($LASTEXITCODE -ne 0) { throw 'NSIS installation failed' }
 
       - name: Build and stage
         if: inputs.unsigned_run_id == ''
         run: ./runtime/release/windows/build-release.ps1
 
+      - name: Check the reused build came from this workflow on main
+        if: inputs.unsigned_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.unsigned_run_id }}
+        run: |
+          if ($env:RUN_ID -notmatch '^\d{1,20}$') { throw 'unsigned_run_id must be a numeric run ID' }
+          $json = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:RUN_ID"
+          if ($LASTEXITCODE -ne 0) { throw "Run $env:RUN_ID not found" }
+          $run = $json | ConvertFrom-Json
+          # The build may come from a run whose packaging failed, so its
+          # conclusion isn't checked; where it was built is.
+          if ($run.head_branch -ne 'main' -or
+              $run.path -ne '.github/workflows/windows-signed-release.yml' -or
+              $run.event -ne 'workflow_dispatch' -or
+              $run.head_repository.full_name -ne $env:GITHUB_REPOSITORY) {
+            throw "Run $env:RUN_ID is not a run of this workflow on main (branch '$($run.head_branch)', workflow '$($run.path)', event '$($run.event)')"
+          }
+          Write-Host "Reusing the unsigned build from run $env:RUN_ID (commit $($run.head_sha))"
+
       - name: Restore prior unsigned build for packaging retry
         if: inputs.unsigned_run_id != ''
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: windows-unsigned-staging
           run-id: ${{ inputs.unsigned_run_id }}
@@ -60,7 +88,7 @@ jobs:
           path: runtime/target/release-windows
 
       - name: Preserve unsigned build for packaging diagnostics
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: windows-unsigned-staging
           retention-days: 1
@@ -73,14 +101,14 @@ jobs:
         run: ./runtime/release/windows/package-release.ps1 -GenerateUninstaller
 
       - name: Authenticate to Azure with OIDC
-        uses: azure/login@v3
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Sign app, plugins, and uninstaller
-        uses: azure/artifact-signing-action@v2
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
         with:
           endpoint: https://wus2.codesigning.azure.net/
           signing-account-name: mickibraun
@@ -96,7 +124,7 @@ jobs:
         run: ./runtime/release/windows/package-release.ps1
 
       - name: Sign installer
-        uses: azure/artifact-signing-action@v2
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
         with:
           endpoint: https://wus2.codesigning.azure.net/
           signing-account-name: mickibraun
@@ -115,10 +143,11 @@ jobs:
           if ($setup.Count -ne 1) { throw 'Expected exactly one installer' }
           ./runtime/release/windows/verify-signatures.ps1 -Path $setup[0].FullName
           $hash = (Get-FileHash $setup[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-          Set-Content "$out/SHA256SUMS.txt" "$hash  $($setup[0].Name)" -Encoding ascii
+          # LF line ending, so `shasum -c` on macOS and Linux reads the file name correctly.
+          [IO.File]::WriteAllText("$out/SHA256SUMS.txt", "$hash  $($setup[0].Name)`n", [Text.Encoding]::ASCII)
 
       - name: Upload signed installer for review
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: windows-signed-installer
           if-no-files-found: error

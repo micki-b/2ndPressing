@@ -1,0 +1,27 @@
+# Dependency update pull requests. Security updates are on as well
+# (repository settings); these are the routine version updates.
+version: 2
+updates:
+  # Actions in the signing workflow are pinned to commit SHAs; Dependabot
+  # updates the SHA and the version comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Rust runtime. nih-plug is pinned to a git revision on purpose and is
+  # updated by hand after listening tests.
+  - package-ecosystem: cargo
+    directory: /runtime
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: nih_plug
+      - dependency-name: nih_plug_egui
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
