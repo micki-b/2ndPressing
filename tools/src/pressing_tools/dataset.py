@@ -31,6 +31,7 @@ from pathlib import Path
 import numpy as np
 from scipy import signal
 
+from pressing_tools import paths
 from pressing_tools import library as lib
 from pressing_tools.crd import PAYLOAD_KINDS, CrdFormatError, read_crd
 
@@ -214,7 +215,7 @@ def _job(side_path: str, out_root: str, cfg: dict) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="pressing-dataset", description=__doc__.split("\n")[0])
-    ap.add_argument("--raw", type=Path, default=Path("/Volumes/Media RAID/Music/VinylStudio/Michael"))
+    ap.add_argument("--raw", type=Path, default=None, help="VinylStudio captures (default: paths.raw_dir())")
     ap.add_argument("--out", type=Path, default=Path("../data/v1"))
     ap.add_argument("--jobs", type=int, default=6)
     ap.add_argument("--limit", type=int, default=0, help="only the first N sides (testing)")
@@ -223,7 +224,7 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     cfg = DatasetConfig(window_s=a.window, seconds_per_window=a.seconds_per_window)
 
-    sides = [s for s in lib.find_sides(a.raw) if s.crd.exists()]
+    sides = [s for s in lib.find_sides(a.raw or paths.raw_dir()) if s.crd.exists()]
     if a.limit:
         sides = sides[:a.limit]
     a.out.mkdir(parents=True, exist_ok=True)

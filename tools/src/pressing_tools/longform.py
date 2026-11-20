@@ -25,10 +25,9 @@ from pathlib import Path
 import numpy as np
 
 from pressing_tools import library as lib
+from pressing_tools import paths
 from pressing_tools.crd import PAYLOAD_KINDS, read_crd
 from pressing_tools.dataset import gather
-
-RAW = Path("/Volumes/Media RAID/Music/VinylStudio/Michael")
 
 
 def _sides_for(data: Path, split: str) -> list[dict]:
@@ -37,7 +36,7 @@ def _sides_for(data: Path, split: str) -> list[dict]:
 
 
 def build_side(meta: dict, out_dir: str, segments: int, seconds: float, seed: int) -> list[str]:
-    path = RAW / meta["side"]
+    path = paths.raw_dir() / meta["side"]
     info = lib.probe(path)
     n = int(round(info["duration"] * 48000))
     N = int(seconds * 48000)

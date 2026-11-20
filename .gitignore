@@ -29,3 +29,6 @@ runtime/fixtures-protect/
 # Private working folders (marketing drafts, test recordings): never in git
 marketing/
 test/
+
+# Local paths to the private record library (see tools/src/pressing_tools/paths.py)
+tools/paths.local.json

@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an improvement to 2ndPressing.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: Please search existing issues first. Describe your workflow in your own words; system details are only needed if relevant.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem or workflow would this help with?
+      description: What you're trying to do (listening, digitizing a collection, restoring a transfer …) and where you get stuck.
+    validations:
+      required: true
+  - type: textarea
+    id: desired-outcome
+    attributes:
+      label: What would you like 2ndPressing to do?
+      description: The outcome you want. A specific example helps.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or additional context (optional)
+      description: Workarounds, other tools you use, or relevant platform details. Remove private information from any attachments.
+    validations:
+      required: false

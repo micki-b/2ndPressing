@@ -13,15 +13,12 @@ Configured signing service:
 - Region: West US 2
 - Endpoint: `https://wus2.codesigning.azure.net/`
 
-## Repository prerequisite
+## Repository
 
-The intended GitHub repository is https://github.com/micki-b/2ndPressing.
-
-This project must be the root of its intended GitHub repository, with `.github/`
-at the repository root. At preparation time, the local Git root was the parent
-`/Users/michaelbraun/Code`, with no remote configured. Do not publish that parent
-directory: it includes unrelated projects. Confirm the intended project repository
-before initializing, moving Git metadata, adding a remote, or pushing files.
+The workflow lives in https://github.com/micki-b/2ndPressing, with `.github/`
+at the repository root. The account name, endpoint and repository IDs in this
+file are not secrets: Azure only issues signing tokens to workflow jobs whose
+OIDC subject matches the federated credential below exactly.
 
 ## Azure connection
 
@@ -50,8 +47,13 @@ Reference: https://learn.microsoft.com/en-us/azure/developer/github/connect-from
 ## GitHub connection
 
 1. In repository Settings > Environments, create `windows-signing`.
-2. Configure permitted deployment branches/tags for trusted release code. Where
-   supported by the repository plan, configure required reviewers as appropriate.
+2. Protect it. This environment is what Azure trusts, so whatever can run a job
+   in it can sign as the publisher:
+   - Deployment branches and tags: selected branches, `main` only.
+   - Required reviewers: the maintainer, so every signing run waits for approval.
+   - Allow administrators to bypass: off.
+   GitHub offers these rules on public repositories (and on private ones with a
+   paid plan); set them as soon as they are available.
 3. Add these environment secrets:
    - `AZURE_CLIENT_ID`: Application (client) ID from the app registration.
    - `AZURE_TENANT_ID`: Directory (tenant) ID.
@@ -63,9 +65,18 @@ Reference: https://learn.microsoft.com/en-us/azure/developer/github/connect-from
    and uninstall on a clean Windows machine.
 
 For packaging/signing retries, the optional `unsigned_run_id` input restores
-`windows-unsigned-staging` from an earlier run in this repository. These
-diagnostic artifacts expire after one day. Leave the input empty for normal
-releases so the workflow builds the selected source revision.
+`windows-unsigned-staging` from an earlier run in this repository. The workflow
+first checks that run was this workflow, started by hand, on `main`, so a build
+from another branch can't be signed this way. These diagnostic artifacts expire
+after one day. Leave the input empty for normal releases so the workflow builds
+the selected source revision.
+
+## Supply chain
+
+Every action in the workflow is pinned to a full commit SHA, with the version
+in a comment, and NSIS is pinned to 3.10.0. Dependabot (`.github/dependabot.yml`)
+proposes action updates as pull requests; review what changed before merging,
+since these steps run with signing access.
 
 No client secret or exported certificate is needed. The federated credential's
 repository and environment must match the workflow exactly. An incorrect match
@@ -95,7 +106,9 @@ verified signatures and timestamps, and uploaded the release artifact.
 
 https://github.com/micki-b/2ndPressing/actions/runs/44011406548
 
-The downloaded installer checksum was also checked on the Mac. Installation,
+The downloaded installer checksum was also checked on the Mac. (That run wrote
+SHA256SUMS.txt with a Windows line ending, which `shasum -c` misreads; the
+workflow now writes a plain line feed.) Installation,
 audio playback, plugin discovery, upgrades, and uninstall still need a clean
 Windows machine test. NSIS warning 6020 in the final packaging mode is expected:
 that mode embeds the separately generated, signed uninstaller.
