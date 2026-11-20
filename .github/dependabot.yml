@@ -1,5 +1,9 @@
 # Dependency update pull requests. Security updates are on as well
 # (repository settings); these are the routine version updates.
+#
+# Only minor and patch versions are proposed. Major versions change APIs
+# or behaviour and are upgraded by hand, with tests (and, for audio code,
+# listening tests). The Tests workflow runs on every Dependabot PR.
 version: 2
 updates:
   # Actions in the signing workflow are pinned to commit SHAs; Dependabot
@@ -8,6 +12,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       actions:
         patterns: ["*"]
@@ -20,8 +27,16 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # Pinned on purpose: nih-plug to a git revision; cpal and rtrb to the
+      # versions nih-plug's standalone backend uses; eframe to the egui that
+      # nih_plug_egui uses. Upgrade these together, by hand.
       - dependency-name: nih_plug
       - dependency-name: nih_plug_egui
+      - dependency-name: cpal
+      - dependency-name: rtrb
+      - dependency-name: eframe
     groups:
       minor-and-patch:
         update-types: [minor, patch]

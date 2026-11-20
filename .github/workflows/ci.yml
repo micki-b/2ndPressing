@@ -1,0 +1,54 @@
+name: Tests
+
+# Runs the runtime and tools tests on every pull request (Dependabot's too)
+# and on pushes to main. No secrets, read-only token: safe for pull requests
+# from forks once the repository is public.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime:
+    name: Runtime (Rust)
+    # macOS: the plugin window and the app need no extra system packages here.
+    runs-on: macos-14
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: runtime
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup default stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: runtime
+      # Tests that need the git-ignored large fixtures skip themselves.
+      - name: Tests
+        run: cargo test --workspace --locked
+      - name: Clippy
+        run: cargo clippy --workspace --locked
+
+  tools:
+    name: Tools (Python)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: tools
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Tests
+        run: uv run --locked pytest -q
