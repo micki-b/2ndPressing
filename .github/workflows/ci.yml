@@ -20,7 +20,7 @@ jobs:
   runtime:
     name: Runtime (Rust)
     # macOS: the plugin window and the app need no extra system packages here.
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 40
     defaults:
       run:
