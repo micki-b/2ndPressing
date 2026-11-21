@@ -30,11 +30,11 @@ OIDC subject matches the federated credential below exactly.
 3. In the app registration, open Certificates & secrets > Federated credentials
    > Add credential. Select the GitHub Actions scenario and supply the exact
    GitHub organization/user `micki-b` (Organization ID `163963902`) and repository
-   `2ndPressing` (Repository ID `1460811513`). Choose entity type Environment
+   `2ndPressing` (Repository ID `1466029706`). Choose entity type Environment
    and value `windows-signing`. Name the credential `secondpressing-release`.
    Use the default audience `api://AzureADTokenExchange`.
    The resulting subject must be
-   `repo:micki-b@163963902/2ndPressing@1460811513:environment:windows-signing`.
+   `repo:micki-b@163963902/2ndPressing@1466029706:environment:windows-signing`.
    This repository was created after July 15, 2026 and uses GitHub's immutable
    default subject format, which includes the numeric owner and repository IDs.
 4. Open the `prelease` certificate profile's Access control (IAM), or the signing
@@ -52,8 +52,7 @@ Reference: https://learn.microsoft.com/en-us/azure/developer/github/connect-from
    - Deployment branches and tags: selected branches, `main` only.
    - Required reviewers: the maintainer, so every signing run waits for approval.
    - Allow administrators to bypass: off.
-   GitHub offers these rules on public repositories (and on private ones with a
-   paid plan); set them as soon as they are available.
+   All three are set on the public repository.
 3. Add these environment secrets:
    - `AZURE_CLIENT_ID`: Application (client) ID from the app registration.
    - `AZURE_TENANT_ID`: Directory (tenant) ID.
